@@ -16,8 +16,10 @@ No external dependencies, and no implicit depedency on any runtime/LibC (unless 
 
 # Building
 NanoRV is designed as a single pair of header and source files, intended to be directly embedded in an existing project.
-Build configuration is specified through a set of `RV_` prefixed preprocessor macros. For a full listing of supported build options, view `nanorv_config.h`.
-Use the `RV_OPT_INCLUDE_CONFIG` preprocessor definition to have NanoRV include a config file (`nanorv_config.h`) containing your build configuration,
+
+Build configuration is specified through a set of `RV_` prefixed preprocessor macros. For a full listing of supported build options, view nanorv_config.h.
+
+Use the `RV_OPT_INCLUDE_CONFIG` preprocessor definition to have NanoRV include a config file (nanorv_config.h) containing your build configuration,
 or specify all your build configuration options project-wide through the compiler's preprocessor definition options.
 
 # Example
