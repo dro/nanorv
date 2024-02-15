@@ -1,5 +1,5 @@
 # NanoRV
-A minimalistic C11 RISC-V (RV32/64[I|M|F]) userspace emulator designed for embedded scripting.
+A lightweight C11 RISC-V (RV32/64[I|M|F]) userspace emulator designed for embedded scripting.
 
 Originally written as the backend for the Nano game engine's scripting system.
 
