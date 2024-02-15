@@ -28,6 +28,7 @@
 #define _In_
 #define _In_
 #define _Outptr_
+#define _Out_
 #define _Success_(x)
 #endif
 
