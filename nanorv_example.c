@@ -28,9 +28,6 @@ RvTest(
 		.Pc              = 0
 	};
 
-	AllocConsole();
-	freopen( "CONOUT$", "w", stdout );
-
 	//
 	// Execute ticks.
 	//
