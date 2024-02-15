@@ -1351,9 +1351,6 @@ RvpInstructionExecuteOpcodeOpRv32m(
 }
 #endif
 
-//
-// TODO: Improve the dispatch logic of this function, handling of funct7+funct3 combinations has become messy.
-//
 static
 VOID
 RvpInstructionExecuteOpcodeOp(
@@ -1361,15 +1358,18 @@ RvpInstructionExecuteOpcodeOp(
 	_In_    RV_UINT32     Instruction
 	)
 {
+	RV_UINT32 Opcode;
 	RV_UINT32 Rd;
 	RV_UINT32 Rs1;
 	RV_UINT32 Rs2;
 	RV_UINT32 Funct3;
 	RV_UINT32 Funct7;
+	RV_UINT32 Class;
 
 	//
 	// Decode R-type fields.
 	//
+	Opcode = ( ( Instruction >> RV_INST_R_OPCODE_SHIFT ) & RV_INST_R_OPCODE_MASK );
 	Rd     = ( ( Instruction >> RV_INST_R_RD_SHIFT ) & RV_INST_R_RD_MASK );
 	Rs1    = ( ( Instruction >> RV_INST_R_RS1_SHIFT ) & RV_INST_R_RS1_MASK );
 	Rs2    = ( ( Instruction >> RV_INST_R_RS2_SHIFT ) & RV_INST_R_RS2_MASK );
@@ -1395,6 +1395,11 @@ RvpInstructionExecuteOpcodeOp(
 #endif
 
 	//
+	// Clasify instruction by combining opcode, funct3, funct7.
+	//
+	Class = RV_INST_CLASSIFY_F3F7( Opcode, Funct3, Funct7 );
+
+	//
 	// Base opcode RV_OPCODE_OP funct3 values (R-type).
 	// 0000000 rs2   rs1 000 rd 0110011 ADD
 	// 0100000 rs2   rs1 000 rd 0110011 SUB
@@ -1407,67 +1412,35 @@ RvpInstructionExecuteOpcodeOp(
 	// 0000000 rs2   rs1 110 rd 0110011 OR
 	// 0000000 rs2   rs1 111 rd 0110011 AND
 	//
-	switch( Funct3 ) {
-	case RV_OP_FUNCT3_ADD_SUB:
-		if( Funct7 == RV_OP_FUNCT7_ADD ) {
-			Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] + Vp->Xr[ Rs2 ] );
-		} else if( Funct7 == RV_OP_FUNCT7_SUB ) {
-			Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] - Vp->Xr[ Rs2 ] );
-		} else {
-			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-			return;
-		}
+	switch( Class ) {
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_ADD_SUB, RV_OP_FUNCT7_ADD ):
+		Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] + Vp->Xr[ Rs2 ] );
 		break;
-	case RV_OP_FUNCT3_SLT:
-		if( Funct7 != RV_OP_FUNCT7_SLT ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-			return;
-		}
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_ADD_SUB, RV_OP_FUNCT7_SUB ):
+		Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] - Vp->Xr[ Rs2 ] );
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_SLT, RV_OP_FUNCT7_SLT ):
 		Vp->Xr[ Rd ] = ( ( ( RV_INTR )Vp->Xr[ Rs1 ] < ( RV_INTR )Vp->Xr[ Rs2 ] ) ? 1 : 0 );
 		break;
-	case RV_OP_FUNCT3_SLTU:
-		if( Funct7 != RV_OP_FUNCT7_SLTU ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-			return;
-		}
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_SLTU, RV_OP_FUNCT7_SLTU ):
 		Vp->Xr[ Rd ] = ( ( Vp->Xr[ Rs1 ] < Vp->Xr[ Rs2 ] ) ? 1 : 0 );
 		break;
-	case RV_OP_FUNCT3_XOR:
-		if( Funct7 != RV_OP_FUNCT7_XOR ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-			return;
-		}
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_XOR, RV_OP_FUNCT7_XOR ):
 		Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] ^ Vp->Xr[ Rs2 ] );
 		break;
-	case RV_OP_FUNCT3_SLL:
-		if( Funct7 != RV_OP_FUNCT7_SLL ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-			return;
-		}
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_SLL, RV_OP_FUNCT7_SLL ):
 		Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] << ( Vp->Xr[ Rs2 ] & 0x3f ) );
 		break;
-	case RV_OP_FUNCT3_SRL_SRA:
-		if( Funct7 == RV_OP_FUNCT7_SRL ) {
-			Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] >> ( Vp->Xr[ Rs2 ] & 0x3f ) );
-		} else if( Funct7 == RV_OP_FUNCT7_SRA ) {
-			Vp->Xr[ Rd ] = ( ( RV_INTR )Vp->Xr[ Rs1 ] >> ( Vp->Xr[ Rs2 ] & 0x3f ) );
-		} else {
-			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-			return;
-		}
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_SRL_SRA, RV_OP_FUNCT7_SRL ):
+		Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] >> ( Vp->Xr[ Rs2 ] & 0x3f ) );
 		break;
-	case RV_OP_FUNCT3_OR:
-		if( Funct7 != RV_OP_FUNCT7_OR ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-			return;
-		}
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_SRL_SRA, RV_OP_FUNCT7_SRA ):
+		Vp->Xr[ Rd ] = ( ( RV_INTR )Vp->Xr[ Rs1 ] >> ( Vp->Xr[ Rs2 ] & 0x3f ) );
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_OR, RV_OP_FUNCT7_OR ):
 		Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] | Vp->Xr[ Rs2 ] );
 		break;
-	case RV_OP_FUNCT3_AND:
-		if( Funct7 != RV_OP_FUNCT7_AND ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-			return;
-		}
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_AND, RV_OP_FUNCT7_AND ):
 		Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] & Vp->Xr[ Rs2 ] );
 		break;
 	default:
