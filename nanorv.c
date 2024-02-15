@@ -610,19 +610,19 @@ RvpMmuResolveGuestAddressFlat(
 	_Outptr_ VOID**        ppHostData
 	)
 {
+	RV_UINTR SpanOffset;
+
 	UNREFERENCED_PARAMETER( AccessFlags );
 
-	//
-	// Currently only allow a flat space of contiguous memory to be allocated to the guest.
-	//
-	if( Address < Vp->VaSpanGuestBase
-		|| Size > Vp->VaSpanSize
-		|| ( Address + Size ) > ( Vp->VaSpanGuestBase + Vp->VaSpanSize ) )
+	SpanOffset = ( Address - Vp->VaSpanGuestBase );
+	if( ( Address < Vp->VaSpanGuestBase )
+		|| ( SpanOffset >= Vp->VaSpanSize )
+		|| ( Size > ( Vp->VaSpanSize - SpanOffset ) ) )
 	{
 		return RV_FALSE;
 	}
 
-	*ppHostData = ( ( RV_UINT8* )Vp->VaSpanHostBase + ( Address - Vp->VaSpanGuestBase ) );
+	*ppHostData = ( ( RV_UCHAR* )Vp->VaSpanHostBase + SpanOffset );
 	return RV_TRUE;
 }
 
