@@ -33,13 +33,6 @@
 #endif
 
 //
-// Allow usage of uint128 types by default on GCC/Clang.
-//
-#if defined(RV_OPT_BUILD_GCC) || defined(RV_OPT_BUILD_CLANG)
-#define RV_OPT_BUILD_INT128_TYPES
-#endif
-
-//
 // Base types used by the emulator code.
 //
 
