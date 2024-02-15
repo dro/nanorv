@@ -164,37 +164,37 @@
 //
 // RISC-V primary opcode map.
 //
-#define RV_OPCODE_LOAD       (0b00'000'11)
-#define RV_OPCODE_LOAD_FP    (0b00'001'11)
-#define RV_OPCODE_CUSTOM0    (0b00'010'11)
-#define RV_OPCODE_MISC_MEM   (0b00'011'11)
-#define RV_OPCODE_OP_IMM     (0b00'100'11)
-#define RV_OPCODE_AUIPC      (0b00'101'11)
-#define RV_OPCODE_OP_IMM32   (0b00'110'11) 
+#define RV_OPCODE_LOAD       (3)   /* (0b00'000'11) */
+#define RV_OPCODE_LOAD_FP    (7)   /* (0b00'001'11) */
+#define RV_OPCODE_CUSTOM0    (11)  /* (0b00'010'11) */
+#define RV_OPCODE_MISC_MEM   (15)  /* (0b00'011'11) */
+#define RV_OPCODE_OP_IMM     (19)  /* (0b00'100'11) */
+#define RV_OPCODE_AUIPC      (23)  /* (0b00'101'11) */
+#define RV_OPCODE_OP_IMM32   (27)  /* (0b00'110'11) */ 
 
-#define RV_OPCODE_STORE      (0b01'000'11)
-#define RV_OPCODE_STORE_FP   (0b01'001'11)
-#define RV_OPCODE_CUSTOM1    (0b01'010'11)
-#define RV_OPCODE_AMO        (0b01'011'11)
-#define RV_OPCODE_OP         (0b01'100'11)
-#define RV_OPCODE_LUI        (0b01'101'11)
-#define RV_OPCODE_OP_32      (0b01'110'11)
+#define RV_OPCODE_STORE      (35)  /* (0b01'000'11) */
+#define RV_OPCODE_STORE_FP   (39)  /* (0b01'001'11) */
+#define RV_OPCODE_CUSTOM1    (43)  /* (0b01'010'11) */
+#define RV_OPCODE_AMO        (47)  /* (0b01'011'11) */
+#define RV_OPCODE_OP         (51)  /* (0b01'100'11) */
+#define RV_OPCODE_LUI        (55)  /* (0b01'101'11) */
+#define RV_OPCODE_OP_32      (59)  /* (0b01'110'11) */
 
-#define RV_OPCODE_MADD       (0b10'000'11)
-#define RV_OPCODE_MSUB       (0b10'001'11)
-#define RV_OPCODE_NMSUB      (0b10'010'11)
-#define RV_OPCODE_NMADD      (0b10'011'11)
-#define RV_OPCODE_OP_FP      (0b10'100'11)
-#define RV_OPCODE_RESERVED0  (0b10'101'11)
-#define RV_OPCODE_CUSTOM2    (0b10'110'11)
+#define RV_OPCODE_MADD       (67)  /* (0b10'000'11) */
+#define RV_OPCODE_MSUB       (71)  /* (0b10'001'11) */
+#define RV_OPCODE_NMSUB      (75)  /* (0b10'010'11) */
+#define RV_OPCODE_NMADD      (79)  /* (0b10'011'11) */
+#define RV_OPCODE_OP_FP      (83)  /* (0b10'100'11) */
+#define RV_OPCODE_RESERVED0  (87)  /* (0b10'101'11) */
+#define RV_OPCODE_CUSTOM2    (91)  /* (0b10'110'11) */
 
-#define RV_OPCODE_BRANCH     (0b11'000'11)
-#define RV_OPCODE_JALR       (0b11'001'11)
-#define RV_OPCODE_RESERVED1  (0b11'010'11)
-#define RV_OPCODE_JAL        (0b11'011'11)
-#define RV_OPCODE_SYSTEM     (0b11'100'11)
-#define RV_OPCODE_RESERVED2  (0b11'101'11)
-#define RV_OPCODE_CUSTOM3    (0b11'110'11)
+#define RV_OPCODE_BRANCH     (99)  /* (0b11'000'11) */
+#define RV_OPCODE_JALR       (103) /* (0b11'001'11) */
+#define RV_OPCODE_RESERVED1  (107) /* (0b11'010'11) */
+#define RV_OPCODE_JAL        (111) /* (0b11'011'11) */
+#define RV_OPCODE_SYSTEM     (115) /* (0b11'100'11) */
+#define RV_OPCODE_RESERVED2  (119) /* (0b11'101'11) */
+#define RV_OPCODE_CUSTOM3    (123) /* (0b11'110'11) */
 
 //
 // Instruction funct3 values.
@@ -204,137 +204,137 @@
 // Base opcode RV_OPCODE_JALR funct3 values (I-type).
 // imm[11:0] rs1 000 rd 1100111 JALR
 //
-#define RV_JALR_FUNCT3_BASE (0b000)
+#define RV_JALR_FUNCT3_BASE (0)
 
 //
 // Base opcode RV_OPCODE_BRANCH funct3 values (B-type).
 //
-#define RV_BRANCH_FUNCT3_BEQ  (0b000)
-#define RV_BRANCH_FUNCT3_BNE  (0b001)
-#define RV_BRANCH_FUNCT3_BLT  (0b100)
-#define RV_BRANCH_FUNCT3_BGE  (0b101)
-#define RV_BRANCH_FUNCT3_BLTU (0b110)
-#define RV_BRANCH_FUNCT3_BGEU (0b111)
+#define RV_BRANCH_FUNCT3_BEQ  (0)
+#define RV_BRANCH_FUNCT3_BNE  (1)
+#define RV_BRANCH_FUNCT3_BLT  (4)
+#define RV_BRANCH_FUNCT3_BGE  (5)
+#define RV_BRANCH_FUNCT3_BLTU (6)
+#define RV_BRANCH_FUNCT3_BGEU (7)
 
 //
 // Base opcode RV_OPCODE_LOAD funct3 values (I-type).
 //
-#define RV_LOAD_FUNCT3_LB  (0b000)
-#define RV_LOAD_FUNCT3_LH  (0b001)
-#define RV_LOAD_FUNCT3_LW  (0b010)
-#define RV_LOAD_FUNCT3_LBU (0b100)
-#define RV_LOAD_FUNCT3_LHU (0b101)
-#define RV_LOAD_FUNCT3_LD  (0b011) /* RV64I */
-#define RV_LOAD_FUNCT3_LWU (0b110) /* RV64I */
+#define RV_LOAD_FUNCT3_LB  (0)
+#define RV_LOAD_FUNCT3_LH  (1)
+#define RV_LOAD_FUNCT3_LW  (2)
+#define RV_LOAD_FUNCT3_LBU (4)
+#define RV_LOAD_FUNCT3_LHU (5)
+#define RV_LOAD_FUNCT3_LD  (3) /* RV64I */
+#define RV_LOAD_FUNCT3_LWU (6) /* RV64I */
 
 //
 // Base opcode RV_OPCODE_STORE funct3 values (S-type).
 //
-#define RV_STORE_FUNCT3_SB (0b000)
-#define RV_STORE_FUNCT3_SH (0b001)
-#define RV_STORE_FUNCT3_SW (0b010)
-#define RV_STORE_FUNCT3_SD (0b011) /* RV64I */
+#define RV_STORE_FUNCT3_SB (0)
+#define RV_STORE_FUNCT3_SH (1)
+#define RV_STORE_FUNCT3_SW (2)
+#define RV_STORE_FUNCT3_SD (3) /* RV64I */
 
 
 //
 // Base opcode RV_OPCODE_OP_IMM funct3 values (I-type).
 //
-#define RV_OP_IMM_FUNCT3_ADDI  (0b000)
-#define RV_OP_IMM_FUNCT3_SLTI  (0b010)
-#define RV_OP_IMM_FUNCT3_SLTIU (0b011)
-#define RV_OP_IMM_FUNCT3_XORI  (0b100)
-#define RV_OP_IMM_FUNCT3_ORI   (0b110)
-#define RV_OP_IMM_FUNCT3_ANDI  (0b111)
+#define RV_OP_IMM_FUNCT3_ADDI  (0)
+#define RV_OP_IMM_FUNCT3_SLTI  (2)
+#define RV_OP_IMM_FUNCT3_SLTIU (3)
+#define RV_OP_IMM_FUNCT3_XORI  (4)
+#define RV_OP_IMM_FUNCT3_ORI   (6)
+#define RV_OP_IMM_FUNCT3_ANDI  (7)
 
 //
 // Base opcode RV_OPCODE_OP_IMM funct3 values (R-type).
 //
-#define RV_OP_IMM_FUNCT3_SLLI      (0b001)
-#define RV_OP_IMM_FUNCT3_SRLI_SRAI (0b101)
+#define RV_OP_IMM_FUNCT3_SLLI      (1)
+#define RV_OP_IMM_FUNCT3_SRLI_SRAI (5)
 
 //
 // Base opcode RV_OPCODE_OP funct3 values (R-type).
 //
-#define RV_OP_FUNCT3_ADD_SUB (0b000)
-#define RV_OP_FUNCT3_SLL     (0b001)
-#define RV_OP_FUNCT3_SLT     (0b010)
-#define RV_OP_FUNCT3_SLTU    (0b011)
-#define RV_OP_FUNCT3_XOR     (0b100)
-#define RV_OP_FUNCT3_SRL_SRA (0b101)
-#define RV_OP_FUNCT3_OR      (0b110)
-#define RV_OP_FUNCT3_AND     (0b111)
+#define RV_OP_FUNCT3_ADD_SUB (0)
+#define RV_OP_FUNCT3_SLL     (1)
+#define RV_OP_FUNCT3_SLT     (2)
+#define RV_OP_FUNCT3_SLTU    (3)
+#define RV_OP_FUNCT3_XOR     (4)
+#define RV_OP_FUNCT3_SRL_SRA (5)
+#define RV_OP_FUNCT3_OR      (6)
+#define RV_OP_FUNCT3_AND     (7)
 
 //
 // Base opcode RV_OPCODE_MISC_MEM funct3 values (I-type?)
 //
-#define RV_MISC_MEM_FUNCT3_FENCE (0b000)
+#define RV_MISC_MEM_FUNCT3_FENCE (0)
 
 //
 // Base opcode RV_OPCODE_SYSTEM funct3 values.
 //
-#define RV_SYSTEM_FUNCT3_ECALL_EBREAK  (0b000)
+#define RV_SYSTEM_FUNCT3_ECALL_EBREAK  (0)
 
 //
 // RV32/RV64 Zicsr Standard Extension RV_OPCODE_SYSTEM funct3 values.
 //
-#define RV_SYSTEM_FUNCT3_CSRRW  (0b001)
-#define RV_SYSTEM_FUNCT3_CSRRS  (0b010)
-#define RV_SYSTEM_FUNCT3_CSRRC  (0b011)
-#define RV_SYSTEM_FUNCT3_CSRRWI (0b101)
-#define RV_SYSTEM_FUNCT3_CSRRSI (0b110)
-#define RV_SYSTEM_FUNCT3_CSRRCI (0b111)
+#define RV_SYSTEM_FUNCT3_CSRRW  (1)
+#define RV_SYSTEM_FUNCT3_CSRRS  (2)
+#define RV_SYSTEM_FUNCT3_CSRRC  (3)
+#define RV_SYSTEM_FUNCT3_CSRRWI (5)
+#define RV_SYSTEM_FUNCT3_CSRRSI (6)
+#define RV_SYSTEM_FUNCT3_CSRRCI (7)
 
 //
 // RV32M RV_OPCODE_OP funct3 values.
 //
-#define RV_OP_FUNCT3_RV32M_MUL    (0b000)
-#define RV_OP_FUNCT3_RV32M_MULH   (0b001)
-#define RV_OP_FUNCT3_RV32M_MULHSU (0b010)
-#define RV_OP_FUNCT3_RV32M_MULHU  (0b011)
-#define RV_OP_FUNCT3_RV32M_DIV    (0b100)
-#define RV_OP_FUNCT3_RV32M_DIVU   (0b101)
-#define RV_OP_FUNCT3_RV32M_REM    (0b110)
-#define RV_OP_FUNCT3_RV32M_REMU   (0b111)
+#define RV_OP_FUNCT3_RV32M_MUL    (0)
+#define RV_OP_FUNCT3_RV32M_MULH   (1)
+#define RV_OP_FUNCT3_RV32M_MULHSU (2)
+#define RV_OP_FUNCT3_RV32M_MULHU  (3)
+#define RV_OP_FUNCT3_RV32M_DIV    (4)
+#define RV_OP_FUNCT3_RV32M_DIVU   (5)
+#define RV_OP_FUNCT3_RV32M_REM    (6)
+#define RV_OP_FUNCT3_RV32M_REMU   (7)
 
 //
 // RV32F RV_OPCODE_OP_FP funct3 values.
 //
-#define	RV_OP_FP_FUNCT3_FSGNJ_S	 (0b000)
-#define	RV_OP_FP_FUNCT3_FSGNJN_S (0b001)
-#define	RV_OP_FP_FUNCT3_FSGNJX_S (0b010)
-#define	RV_OP_FP_FUNCT3_FMIN_S	 (0b000)
-#define	RV_OP_FP_FUNCT3_FMAX_S	 (0b001)
-#define	RV_OP_FP_FUNCT3_FMV_X_W	 (0b000)
-#define	RV_OP_FP_FUNCT3_FEQ_S	 (0b010)
-#define	RV_OP_FP_FUNCT3_FLT_S	 (0b001)
-#define	RV_OP_FP_FUNCT3_FLE_S	 (0b000)
-#define	RV_OP_FP_FUNCT3_FCLASS_S (0b001)
-#define	RV_OP_FP_FUNCT3_FMV_W_X	 (0b000)
+#define	RV_OP_FP_FUNCT3_FSGNJ_S	 (0)
+#define	RV_OP_FP_FUNCT3_FSGNJN_S (1)
+#define	RV_OP_FP_FUNCT3_FSGNJX_S (2)
+#define	RV_OP_FP_FUNCT3_FMIN_S	 (0)
+#define	RV_OP_FP_FUNCT3_FMAX_S	 (1)
+#define	RV_OP_FP_FUNCT3_FMV_X_W	 (0)
+#define	RV_OP_FP_FUNCT3_FEQ_S	 (2)
+#define	RV_OP_FP_FUNCT3_FLT_S	 (1)
+#define	RV_OP_FP_FUNCT3_FLE_S	 (0)
+#define	RV_OP_FP_FUNCT3_FCLASS_S (1)
+#define	RV_OP_FP_FUNCT3_FMV_W_X	 (0)
 
 //
 // RV64I RV_OPCODE_OP_IMM_32 funct3 values.
 //
-#define RV_OP_IMM_32_FUNCT3_ADDIW       (0b000)
-#define RV_OP_IMM_32_FUNCT3_SLLIW       (0b001)
-#define RV_OP_IMM_32_FUNCT3_SRLIW_SRAIW (0b101)
+#define RV_OP_IMM_32_FUNCT3_ADDIW       (0)
+#define RV_OP_IMM_32_FUNCT3_SLLIW       (1)
+#define RV_OP_IMM_32_FUNCT3_SRLIW_SRAIW (5)
 
 //
 // RV64I RV_OPCODE_OP_32 funct3 values.
 //
-#define RVP_OP_32_FUNCT3_ADDW (0b000)
-#define RVP_OP_32_FUNCT3_SUBW (0b000)
-#define RVP_OP_32_FUNCT3_SLLW (0b001)
-#define RVP_OP_32_FUNCT3_SRLW (0b101)
-#define RVP_OP_32_FUNCT3_SRAW (0b101)
+#define RVP_OP_32_FUNCT3_ADDW (0)
+#define RVP_OP_32_FUNCT3_SUBW (0)
+#define RVP_OP_32_FUNCT3_SLLW (1)
+#define RVP_OP_32_FUNCT3_SRLW (5)
+#define RVP_OP_32_FUNCT3_SRAW (5)
 
 //
 // RV64M RV_OPCODE_OP_32 funct3 values.
 //
-#define RV_OP_32_FUNCT3_RV64M_MULW  (0b000)
-#define RV_OP_32_FUNCT3_RV64M_DIVW  (0b100)
-#define RV_OP_32_FUNCT3_RV64M_DIVUW (0b101)
-#define RV_OP_32_FUNCT3_RV64M_REMW  (0b110)
-#define RV_OP_32_FUNCT3_RV64M_REMUW (0b111)
+#define RV_OP_32_FUNCT3_RV64M_MULW  (0)
+#define RV_OP_32_FUNCT3_RV64M_DIVW  (4)
+#define RV_OP_32_FUNCT3_RV64M_DIVUW (5)
+#define RV_OP_32_FUNCT3_RV64M_REMW  (6)
+#define RV_OP_32_FUNCT3_RV64M_REMUW (7)
 
 //
 // Instruction funct7 values.
@@ -343,77 +343,76 @@
 //
 // Base opcode RV_OPCODE_OP_IMM funct7 values (R-type).
 //
-#define RV_OP_IMM_FUNCT7_SLLI (0b0000000)
-#define RV_OP_IMM_FUNCT7_SRLI (0b0000000)
-#define RV_OP_IMM_FUNCT7_SRAI (0b0100000)
+#define RV_OP_IMM_FUNCT7_SLLI (0)
+#define RV_OP_IMM_FUNCT7_SRLI (0)
+#define RV_OP_IMM_FUNCT7_SRAI (32)
 
 //
 // Base opcode RV_OPCODE_OP funct7 values (R-type).
 //
-#define RV_OP_FUNCT7_ADD   (0b0000000)
-#define RV_OP_FUNCT7_SUB   (0b0100000)
-#define RV_OP_FUNCT7_SLL   (0b0000000)
-#define RV_OP_FUNCT7_SLT   (0b0000000)
-#define RV_OP_FUNCT7_SLTU  (0b0000000)
-#define RV_OP_FUNCT7_XOR   (0b0000000)
-#define RV_OP_FUNCT7_SRL   (0b0000000)
-#define RV_OP_FUNCT7_SRA   (0b0100000)
-#define RV_OP_FUNCT7_OR	   (0b0000000)
-#define RV_OP_FUNCT7_AND   (0b0000000)
-#define RV_OP_FUNCT7_RV32M (0b0000001)
+#define RV_OP_FUNCT7_ADD   (0)
+#define RV_OP_FUNCT7_SUB   (32)
+#define RV_OP_FUNCT7_SLL   (0)
+#define RV_OP_FUNCT7_SLT   (0)
+#define RV_OP_FUNCT7_SLTU  (0)
+#define RV_OP_FUNCT7_XOR   (0)
+#define RV_OP_FUNCT7_SRL   (0)
+#define RV_OP_FUNCT7_SRA   (32)
+#define RV_OP_FUNCT7_OR	   (0)
+#define RV_OP_FUNCT7_AND   (0)
+#define RV_OP_FUNCT7_RV32M (1)
 
 //
 // RV_OPCODE_OP_IMM_32 funct7 values.
 //
-#define RV_OP_IMM_32_FUNCT7_SLLIW (0b0000000)
-#define RV_OP_IMM_32_FUNCT7_SRLIW (0b0000000)
-#define RV_OP_IMM_32_FUNCT7_SRAIW (0b0100000)
+#define RV_OP_IMM_32_FUNCT7_SLLIW (0)
+#define RV_OP_IMM_32_FUNCT7_SRLIW (0)
+#define RV_OP_IMM_32_FUNCT7_SRAIW (32)
 
 //
 // RV_OPCODE_OP_32 funct7 values.
 //
-#define RV_OP_32_FUNCT7_ADDW  (0b0000000)
-#define RV_OP_32_FUNCT7_SUBW  (0b0100000)
-#define RV_OP_32_FUNCT7_SLLW  (0b0000000)
-#define RV_OP_32_FUNCT7_SRLW  (0b0000000)
-#define RV_OP_32_FUNCT7_SRAW  (0b0100000)
-#define RV_OP_32_FUNCT7_RV64M (0b0000001)
+#define RV_OP_32_FUNCT7_ADDW  (0)
+#define RV_OP_32_FUNCT7_SUBW  (32)
+#define RV_OP_32_FUNCT7_SLLW  (0)
+#define RV_OP_32_FUNCT7_SRLW  (0)
+#define RV_OP_32_FUNCT7_SRAW  (32)
+#define RV_OP_32_FUNCT7_RV64M (1)
 
 //
 // RV32F RV_OPCODE_OP_FP funct7 values.
 //
-#define RV_OP_FP_FUNCT7_FADD_S	   (0b0000000)
-#define RV_OP_FP_FUNCT7_FSUB_S	   (0b0000100)
-#define RV_OP_FP_FUNCT7_FMUL_S	   (0b0001000)
-#define RV_OP_FP_FUNCT7_FDIV_S	   (0b0001100)
-#define RV_OP_FP_FUNCT7_FSQRT_S	   (0b0101100)
-#define RV_OP_FP_FUNCT7_FSGNJ_S	   (0b0010000)
-#define RV_OP_FP_FUNCT7_FSGNJN_S   (0b0010000)
-#define RV_OP_FP_FUNCT7_FSGNJX_S   (0b0010000)
-#define RV_OP_FP_FUNCT7_FMIN_S	   (0b0010100)
-#define RV_OP_FP_FUNCT7_FMAX_S	   (0b0010100)
-#define RV_OP_FP_FUNCT7_FCVT_W_S   (0b1100000)
-#define RV_OP_FP_FUNCT7_FCVT_WU_S  (0b1100000)
-#define RV_OP_FP_FUNCT7_FMV_X_W	   (0b1110000)
-#define RV_OP_FP_FUNCT7_FEQ_S	   (0b1010000)
-#define RV_OP_FP_FUNCT7_FLT_S	   (0b1010000)
-#define RV_OP_FP_FUNCT7_FLE_S	   (0b1010000)
-#define RV_OP_FP_FUNCT7_FCLASS_S   (0b1110000)
-#define RV_OP_FP_FUNCT7_FCVT_S_W   (0b1101000)
-#define RV_OP_FP_FUNCT7_FCVT_S_WU  (0b1101000)
-#define RV_OP_FP_FUNCT7_FMV_W_X	   (0b1111000)
+#define RV_OP_FP_FUNCT7_FADD_S	    (0)
+#define RV_OP_FP_FUNCT7_FSUB_S	    (4)
+#define RV_OP_FP_FUNCT7_FMUL_S	    (8)
+#define RV_OP_FP_FUNCT7_FDIV_S	    (12)
+#define RV_OP_FP_FUNCT7_FSQRT_S	    (44)
+#define RV_OP_FP_FUNCT7_FSGNJ_S	    (16)
+#define RV_OP_FP_FUNCT7_FSGNJN_S    (16)
+#define RV_OP_FP_FUNCT7_FSGNJX_S    (16)
+#define RV_OP_FP_FUNCT7_FMIN_FMAX_S (20)
+#define RV_OP_FP_FUNCT7_FCVT_W_S    (96)
+#define RV_OP_FP_FUNCT7_FCVT_WU_S   (96)
+#define RV_OP_FP_FUNCT7_FMV_X_W	    (112)
+#define RV_OP_FP_FUNCT7_FEQ_S	    (80)
+#define RV_OP_FP_FUNCT7_FLT_S	    (80)
+#define RV_OP_FP_FUNCT7_FLE_S	    (80)
+#define RV_OP_FP_FUNCT7_FCLASS_S    (112)
+#define RV_OP_FP_FUNCT7_FCVT_S_W    (104)
+#define RV_OP_FP_FUNCT7_FCVT_S_WU   (104)
+#define RV_OP_FP_FUNCT7_FMV_W_X	    (120)
 
 //
 // Special RV32F rs2 values.
 //
-#define RV_OP_FP_RS2_FSQRT_S   (0b00000)
-#define RV_OP_FP_RS2_FCVT_W_S  (0b00000)
-#define RV_OP_FP_RS2_FCVT_WU_S (0b00001)
-#define RV_OP_FP_RS2_FMV_X_W   (0b00000)
-#define RV_OP_FP_RS2_FCLASS_S  (0b00000)
-#define RV_OP_FP_RS2_FCVT_S_W  (0b00000)
-#define RV_OP_FP_RS2_FCVT_S_WU (0b00001)
-#define RV_OP_FP_RS2_FMV_W_X   (0b00000)
+#define RV_OP_FP_RS2_FSQRT_S   (0)
+#define RV_OP_FP_RS2_FCVT_W_S  (0)
+#define RV_OP_FP_RS2_FCVT_WU_S (1)
+#define RV_OP_FP_RS2_FMV_X_W   (0)
+#define RV_OP_FP_RS2_FCLASS_S  (0)
+#define RV_OP_FP_RS2_FCVT_S_W  (0)
+#define RV_OP_FP_RS2_FCVT_S_WU (1)
+#define RV_OP_FP_RS2_FMV_W_X   (0)
 
 //
 // Instruction funct12 values.
@@ -422,8 +421,8 @@
 //
 // Base opcode RV_OPCODE_SYSTEM funct12 values.
 //
-#define RV_SYSTEM_FUNCT12_ECALL  (0b000000000000)
-#define RV_SYSTEM_FUNCT12_EBREAK (0b000000000001)
+#define RV_SYSTEM_FUNCT12_ECALL  (0)
+#define RV_SYSTEM_FUNCT12_EBREAK (1)
 
 //
 // Floating-point-specific values.
@@ -432,10 +431,10 @@
 //
 // RV32F 2-bit Floating-point format field fmt values.
 //
-#define RV_FP_FMT_S (0b00) /* 32-bit single-precision. */
-#define RV_FP_FMT_D (0b01) /* 64-bit double-precision. */
-#define RV_FP_FMT_H (0b10) /* 16-bit half-precision. */
-#define RV_FP_FMT_Q (0b11) /* 128-bit quad-precision. */
+#define RV_FP_FMT_S (0) /* 32-bit single-precision. */
+#define RV_FP_FMT_D (1) /* 64-bit double-precision. */
+#define RV_FP_FMT_H (2) /* 16-bit half-precision. */
+#define RV_FP_FMT_Q (3) /* 128-bit quad-precision. */
 
 //
 // RV32F fcsr bitfield information.
@@ -465,14 +464,14 @@
 //
 // RV32F rounding modes.
 //
-#define RV_ROUNDING_MODE_RNE        (0b000) /* Round to Nearest, ties to Even						 */
-#define RV_ROUNDING_MODE_RTZ        (0b001) /* Round towards Zero									 */
-#define RV_ROUNDING_MODE_RDN        (0b010) /* Round Down( towards -inf )							 */
-#define RV_ROUNDING_MODE_RUP        (0b011) /* Round Up( towards +inf )								 */
-#define RV_ROUNDING_MODE_RMM        (0b100) /* Round to Nearest, ties to Max Magnitude				 */
-#define RV_ROUNDING_MODE_RESERVED0  (0b101) /* Reserved for future use.								 */
-#define RV_ROUNDING_MODE_RESERVED1  (0b110) /* Reserved for future use.								 */
-#define RV_ROUNDING_MODE_DYN        (0b111) /* Only valid if specified in an instruction's rm field. */
+#define RV_ROUNDING_MODE_RNE        (0) /* Round to Nearest, ties to Even						 */
+#define RV_ROUNDING_MODE_RTZ        (1) /* Round towards Zero									 */
+#define RV_ROUNDING_MODE_RDN        (2) /* Round Down( towards -inf )							 */
+#define RV_ROUNDING_MODE_RUP        (3) /* Round Up( towards +inf )								 */
+#define RV_ROUNDING_MODE_RMM        (4) /* Round to Nearest, ties to Max Magnitude				 */
+#define RV_ROUNDING_MODE_RESERVED0  (5) /* Reserved for future use.								 */
+#define RV_ROUNDING_MODE_RESERVED1  (6) /* Reserved for future use.								 */
+#define RV_ROUNDING_MODE_DYN        (7) /* Only valid if specified in an instruction's rm field. */
 
 //
 // RV interrupt 0 base exception indices.
@@ -1156,9 +1155,9 @@ RvpInstructionExecuteOpcodeOpImmITypeShamt(
 		Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] << Shamt );
 		break;
 	case RV_OP_IMM_FUNCT3_SRLI_SRAI:
-		if( ShiftType == 0b000000 ) {
+		if( ShiftType == 0 ) {
 			Vp->Xr[ Rd ] = ( Vp->Xr[ Rs1 ] >> Shamt );
-		} else if( ShiftType == 0b100000 ) {
+		} else if( ShiftType == 0x20 ) {
 			Vp->Xr[ Rd ] = ( ( RV_INTR )Vp->Xr[ Rs1 ] >> Shamt );
 		} else {
 			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
@@ -2340,16 +2339,16 @@ RvpInstructionExecuteOpcodeOpImm32(
 		// SLLIW, SRLIW, and SRAIW are RV64I-only instructions that are analogously defined but operate
 		// on 32-bit values and produce signed 32-bit results.
 		//
-		if( ShiftType != 0b000000 ) {
+		if( ShiftType != 0 ) {
 			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
 			return;
 		}
 		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )( ( RV_UINT32 )Vp->Xr[ Rs1 ] << Shamt );
 		break;
 	case RV_OP_IMM_32_FUNCT3_SRLIW_SRAIW:
-		if( ShiftType == 0b000000 ) {
+		if( ShiftType == 0 ) {
 			Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )( ( RV_UINT32 )Vp->Xr[ Rs1 ] >> Shamt );
-		} else if( ShiftType == 0b010000 ) {
+		} else if( ShiftType == 0x10 ) {
 			Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )( ( RV_INT32 )Vp->Xr[ Rs1 ] >> Shamt );
 		} else {
 			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
@@ -2384,7 +2383,7 @@ RvpInstructionExecuteOpcodeAmo(
 // RV32F instructions, WIP.
 //
 
-#if 0
+#if 0 && defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D)
 static
 VOID
 RvpInstructionExecuteOpcodeMAdd(
@@ -2554,24 +2553,33 @@ RvpInstructionExecuteOpcodeOpFp(
 	//
 	switch( Class ) {
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FADD_S ):
-		RvpFpuHostSetRoundingMode( Vp, Rm );
 		Vp->Fr[ RdFr ] = ( RV_FLOATR )( ( RV_FLOAT )Vp->Fr[ Rs1Fr ] + ( RV_FLOAT )Vp->Fr[ Rs2Fr ] );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FSUB_S ):
-		RvpFpuHostSetRoundingMode( Vp, Rm );
 		Vp->Fr[ RdFr ] = ( RV_FLOATR )( ( RV_FLOAT )Vp->Fr[ Rs1Fr ] - ( RV_FLOAT )Vp->Fr[ Rs2Fr ] );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FMUL_S ):
-		RvpFpuHostSetRoundingMode( Vp, Rm );
 		Vp->Fr[ RdFr ] = ( RV_FLOATR )( ( RV_FLOAT )Vp->Fr[ Rs1Fr ] * ( RV_FLOAT )Vp->Fr[ Rs2Fr ] );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FDIV_S ):
-		RvpFpuHostSetRoundingMode( Vp, Rm );
 		Vp->Fr[ RdFr ] = ( RV_FLOATR )( ( RV_FLOAT )Vp->Fr[ Rs1Fr ] / ( RV_FLOAT )Vp->Fr[ Rs2Fr ] );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FSQRT_S ):
-		RvpFpuHostSetRoundingMode( Vp, Rm );
 		Vp->Fr[ RdFr ] = ( RV_FLOATR )RvpFpuHostSqrtF32( Vp, ( RV_FLOAT )Vp->Fr[ Rs1Fr ] );
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FMIN_FMAX_S ):
+		//
+		// Floating-point minimum-number and maximum-number instructions FMIN.S and FMAX.S write,
+		// respectively, the smaller or larger of rs1 and rs2 to rd. For the purposes of these instructions only,
+		// the value -0.0 is considered to be less than the value +0.0. If both inputs are NaNs, the result is
+		// the canonical NaN. If only one operand is a NaN, the result is the non-NaN operand. Signaling
+		// NaN inputs set the invalid operation exception flag, even when the result is not NaN.
+		// The funct3 field indicates if this is a min or max instruction variant.
+		//
+
+		if(  )
+
+
 		break;
 	default:
 		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
