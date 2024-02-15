@@ -18,7 +18,7 @@ No external dependencies, and no implicit depedency on any runtime/LibC (unless 
 * RV32A/AMO
 
 # Building
-NanoRV is designed as a single pair of header and source files, intended to be directly embedded in an existing project.
+NanoRV is intended to be directly embedded in an existing project.
 
 Build configuration is specified through a set of `RV_` prefixed preprocessor macros. For a full listing of supported build options, view nanorv_config.h.
 
