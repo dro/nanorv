@@ -1218,6 +1218,48 @@ RvpInstructionExecuteOpcodeOpImm(
 #if defined(RV_OPT_RV32M)
 
 //
+// U64xU64 -> upper half of 128bit result.
+//
+static
+RV_UINT64
+RvpUMulh64(	
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT64     Operand1,
+	_In_    RV_UINT64     Operand2
+	)
+{
+	UNREFERENCED_PARAMETER( Vp );
+
+#ifdef RV_OPT_BUILD_MSVC
+	return __umulh( Operand1, Operand2 );
+#elif defined(RV_OPT_BUILD_INT128_TYPES)
+	return ( ( ( uint128_t )Operand1 * ( uint128_t )Operand2 ) >> 64 );
+#else
+	RV_UINT64 Cp_Lo1_Lo2;
+	RV_UINT64 Cp_Lo1_Hi2;
+	RV_UINT64 Cp_Hi1_Lo2;
+	RV_UINT64 Cp_Hi1_Hi2;
+	RV_UINT64 Cross;
+	RV_UINT64 Upper;
+
+	//
+	// Calculate cross-products of all 32-bit words of Operand1 and Operand2.
+	//
+	Cp_Lo1_Lo2 = ( ( Operand1 & ( ( 1ull << 32 ) - 1 ) ) * ( Operand2 & ( ( 1ull << 32 ) - 1 ) ) );
+	Cp_Lo1_Hi2 = ( ( Operand1 & ( ( 1ull << 32 ) - 1 ) ) * ( Operand2 >> 32ull ) );
+	Cp_Hi1_Lo2 = ( ( Operand1 >> 32ull )                 * ( Operand2 & ( ( 1ull << 32 ) - 1 ) ) );
+	Cp_Hi1_Hi2 = ( ( Operand1 >> 32ull )                 * ( Operand2 >> 32ull ) );
+
+	//
+	// Calculate upper 64-bits of the result.
+	//
+	Cross = ( ( Cp_Lo1_Lo2 >> 32ull ) + ( Cp_Hi1_Lo2 & ( ( 1ull << 32 ) - 1 ) ) + Cp_Lo1_Hi2 );
+	Upper = ( ( Cp_Hi1_Lo2 >> 32ull ) + ( Cross >> 32ull ) + Cp_Hi1_Hi2 );
+	return Upper;
+#endif
+}
+
+//
 // S64xS64 -> upper half of 128bit result.
 //
 static
@@ -1235,31 +1277,12 @@ RvpMulh64(
 #elif defined(RV_OPT_BUILD_INT128_TYPES)
 	return ( ( ( int128_t )Operand1 * ( int128_t )Operand2 ) >> 64 );
 #else
-	#error "Unsupported."
+	return ( ( ( RV_INT64 )RvpUMulh64( Vp, ( RV_UINT64 )Operand1, ( RV_UINT64 )Operand2 ) )
+			- ( ( Operand1 >> 63ull ) & Operand2 )
+			- ( ( Operand2 >> 63ull ) & Operand1 ) );
 #endif
 }
 
-//
-// U64xU64 -> upper half of 128bit result.
-//
-static
-RV_UINT64
-RvpUMulh64(
-	_Inout_ RV_PROCESSOR* Vp,
-	_In_    RV_UINT64     Operand1,
-	_In_    RV_UINT64     Operand2
-	)
-{
-	UNREFERENCED_PARAMETER( Vp );
-
-#ifdef RV_OPT_BUILD_MSVC
-	return __umulh( Operand1, Operand2 );
-#elif defined(RV_OPT_BUILD_INT128_TYPES)
-	return ( ( ( uint128_t )Operand1 * ( uint128_t )Operand2 ) >> 64 );
-#else
-	#error "Unsupported."
-#endif
-}
 
 //
 // S64xU64 -> upper half of 128bit result.
@@ -1274,12 +1297,11 @@ RvpSUMulh64(
 {
 	UNREFERENCED_PARAMETER( Vp );
 
-#ifdef RV_OPT_BUILD_MSVC
-	return ( ( RV_INT64 )RvpUMulh64( Vp, ( RV_UINT64 )Operand1, Operand2 ) - ( ( Operand1 >> 63ull ) & ( RV_INT64 )Operand2 ) );
-#elif defined(RV_OPT_BUILD_INT128_TYPES)
+#if defined(RV_OPT_BUILD_INT128_TYPES)
 	return ( ( ( int128_t )Operand1 * ( uint128_t )Operand2 ) >> 64 );
 #else
-	#error "Unsupported."
+	return ( ( RV_INT64 )RvpUMulh64( Vp, ( RV_UINT64 )Operand1, Operand2 )
+			 - ( ( Operand1 >> 63ull ) & ( RV_INT64 )Operand2 ) );
 #endif
 }
 
@@ -1346,28 +1368,28 @@ RvpInstructionExecuteOpcodeOpRv32m(
 		// the upper XLEN bits of the full 2×XLEN-bit product, for signed×signed, unsigned×unsigned,
 		// and signed rs1×unsigned rs2 multiplication, respectively.
 		//
-#if defined(RV_OPT_RV32I)
-		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )( ( ( RV_INT64 )Vp->Xr[ Rs1 ] * ( RV_INT64 )Vp->Xr[ Rs2 ] ) >> 32ull );
-#elif defined(RV_OPT_RV64I)
+#if defined(RV_OPT_RV64I)
 		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )RvpMulh64( Vp, ( RV_INT64 )Vp->Xr[ Rs1 ], ( RV_INT64 )Vp->Xr[ Rs2 ] );
+#elif defined(RV_OPT_RV32I)
+		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )( ( ( RV_INT64 )Vp->Xr[ Rs1 ] * ( RV_INT64 )Vp->Xr[ Rs2 ] ) >> 32ull );
 #else
 		#error "Unsupported XLEN mode."
 #endif
 		break;
 	case RV_OP_FUNCT3_RV32M_MULHU:
-#if defined(RV_OPT_RV32I)
-		Vp->Xr[ Rd ] = ( RV_UINTR )( ( ( RV_UINT64 )Vp->Xr[ Rs1 ] * ( RV_UINT64 )Vp->Xr[ Rs2 ] ) >> 32ull );
-#elif defined(RV_OPT_RV64I)
+#if defined(RV_OPT_RV64I)
 		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )RvpUMulh64( Vp, Vp->Xr[ Rs1 ], Vp->Xr[ Rs2 ] );
+#elif defined(RV_OPT_RV32I)
+		Vp->Xr[ Rd ] = ( RV_UINTR )( ( ( RV_UINT64 )Vp->Xr[ Rs1 ] * ( RV_UINT64 )Vp->Xr[ Rs2 ] ) >> 32ull );
 #else
 		#error "Unsupported XLEN mode."
 #endif
 		break;
 	case RV_OP_FUNCT3_RV32M_MULHSU:
-#if defined(RV_OPT_RV32I)
+#if defined(RV_OPT_RV64I)
+	Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )RvpSUMulh64( Vp, Vp->Xr[ Rs1 ], Vp->Xr[ Rs2 ] );
+#elif defined(RV_OPT_RV32I)
 		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )( ( ( RV_INT64 )Vp->Xr[ Rs1 ] * ( RV_UINT64 )Vp->Xr[ Rs2 ] ) >> 32ull );
-#elif defined(RV_OPT_RV64I)
-		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )RvpSUMulh64( Vp, Vp->Xr[ Rs1 ], Vp->Xr[ Rs2 ] );
 #else
 		#error "Unsupported XLEN mode."
 #endif

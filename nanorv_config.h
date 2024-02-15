@@ -22,7 +22,7 @@
 //
 // Allow the use of MSVC-specific extensions and intrinsics.
 //
-#define RV_OPT_BUILD_MSVC
+// #define RV_OPT_BUILD_MSVC
 
 //
 // Allow the use of GCC-specific extensions and intrinsics.
@@ -37,7 +37,7 @@
 //
 // Use actual SAL definitions.
 //
-#define RV_OPT_BUILD_SAL
+// #define RV_OPT_BUILD_SAL
 
 //
 // Allow the use of SSE intrinsics (used by FP code).
