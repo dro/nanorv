@@ -1751,54 +1751,6 @@ RvpCsrHandleRead(
 }
 
 static
-RV_UINTR
-RvpCsrAtomicSwap(
-	_Inout_ RV_PROCESSOR* Vp,
-	_Inout_ RV_UINTR*     pCsrRegister,
-	_In_    RV_UINTR      NewValue
-	)
-{
-	RV_UINTR OldValue;
-
-	OldValue      = *pCsrRegister;
-	*pCsrRegister = NewValue;
-
-	return OldValue;
-}
-
-static
-RV_UINTR
-RvpCsrAtomicReadAndSetBits(
-	_Inout_ RV_PROCESSOR* Vp,
-	_Inout_ RV_UINTR*     pCsrRegister,
-	_In_    RV_UINTR      SetBitMask
-	)
-{
-	RV_UINTR OldValue;
-
-	OldValue      = *pCsrRegister;
-	*pCsrRegister = ( OldValue | SetBitMask );
-
-	return OldValue;
-}
-
-static
-RV_UINTR
-RvpCsrAtomicReadAndClearBits(
-	_Inout_ RV_PROCESSOR* Vp,
-	_Inout_ RV_UINTR*     pCsrRegister,
-	_In_    RV_UINTR      ClearBitMask
-	)
-{
-	RV_UINTR OldValue;
-
-	OldValue      = *pCsrRegister;
-	*pCsrRegister = ( OldValue & ~ClearBitMask );
-
-	return OldValue;
-}
-
-static
 VOID
 RvpInstructionExecuteOpcodeSystem(
 	_Inout_ RV_PROCESSOR* Vp,
