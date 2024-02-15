@@ -1,8 +1,45 @@
 #include "nanorv.h"
 
 //
+// User-tunable compile-time options.
+//
+
+
+//
+// Allow usage of MSVC-specific extensions/intrinsics.
+//
+#ifdef RV_OPT_BUILD_MSVC
+#include <intrin.h>
+#endif
+
+//
+// Allow usage of CRT/LibC for certain (math) functions.
+//
+#ifdef RV_OPT_BUILD_LIBC
+#include <math.h>
+#endif
+
+//
+// Allow usage of x86 SSE intrinsics.
+//
+#ifdef RV_OPT_BUILD_SSE
+#include <intrin.h>
+#include <xmmintrin.h>
+#endif
+
+//
+// Set up builtin int128 types if supported.
+//
+#ifdef RV_OPT_BUILD_INT128_TYPES
+#define int128_t  __int128
+#define uint128_t unsigned __int128
+#endif
+
+
+//
 // Instruction formats/instruction encoding helpers.
 //
+
 
 //
 // RV32I instruction format R bit positions/masks.
@@ -1043,9 +1080,6 @@ RvpInstructionExecuteOpcodeOpImmIType(
 	Vp->Pc += 4;
 }
 
-//
-// TODO: Fix this for rv64i, decoding of shamt requires an extra bit!
-//
 static
 VOID
 RvpInstructionExecuteOpcodeOpImmITypeShamt(

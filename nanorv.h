@@ -8,20 +8,11 @@
 // User-tunable compile-time options.
 //
 
-#define RV_OPT_INCLUDE_CONFIG
-
 //
 // Allow the user to specify a configuration header.
 //
 #ifdef RV_OPT_INCLUDE_CONFIG
 #include "nanorv_config.h"
-#endif
-
-//
-// Allow usage of MSVC-specific extensions/intrinsics.
-//
-#ifdef RV_OPT_BUILD_MSVC
-#include <intrin.h>
 #endif
 
 //
@@ -41,26 +32,10 @@
 #endif
 
 //
-// Allow usage of CRT/LibC for certain (math) functions.
+// Allow usage of uint128 types by default on GCC/Clang.
 //
-#ifdef RV_OPT_BUILD_LIBC
-#include <math.h>
-#endif
-
-//
-// Allow usage of x86 SSE intrinsics.
-//
-#ifdef RV_OPT_BUILD_SSE
-#include <intrin.h>
-#include <xmmintrin.h>
-#endif
-
-//
-// Allow usage of GCC/clang-specific uint128 types.
-//
-#ifdef RV_OPT_BUILD_INT128_TYPES
-#define int128_t  __int128
-#define uint128_t unsigned __int128
+#if defined(RV_OPT_BUILD_GCC) || defined(RV_OPT_BUILD_CLANG)
+#define RV_OPT_BUILD_INT128_TYPES
 #endif
 
 //
@@ -160,6 +135,7 @@ typedef RV_FLOAT RV_FLOATR;
 //
 // RV emulator processor (hart) context.
 //
+
 typedef struct _RV_PROCESSOR {
 	//
 	// General purpose register context.

@@ -25,6 +25,16 @@
 #define RV_OPT_BUILD_MSVC
 
 //
+// Allow the use of GCC-specific extensions and intrinsics.
+//
+// #define RV_OPT_BUILD_GCC
+
+//
+// Allow the use of Clang-specific extensions and intrinsics.
+//
+// #define RV_OPT_BUILD_CLANG
+
+//
 // Use actual SAL definitions.
 //
 #define RV_OPT_BUILD_SAL
