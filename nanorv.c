@@ -1264,7 +1264,7 @@ RvpUMulh64(
 //
 static
 RV_INT64
-RvpMulh64(
+RvpSMulh64(
 	_Inout_ RV_PROCESSOR* Vp,
 	_In_    RV_INT64      Operand1,
 	_In_    RV_INT64      Operand2
@@ -1369,7 +1369,7 @@ RvpInstructionExecuteOpcodeOpRv32m(
 		// and signed rs1×unsigned rs2 multiplication, respectively.
 		//
 #if defined(RV_OPT_RV64I)
-		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )RvpMulh64( Vp, ( RV_INT64 )Vp->Xr[ Rs1 ], ( RV_INT64 )Vp->Xr[ Rs2 ] );
+		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )RvpSMulh64( Vp, ( RV_INT64 )Vp->Xr[ Rs1 ], ( RV_INT64 )Vp->Xr[ Rs2 ] );
 #elif defined(RV_OPT_RV32I)
 		Vp->Xr[ Rd ] = ( RV_UINTR )( RV_INTR )( ( ( RV_INT64 )Vp->Xr[ Rs1 ] * ( RV_INT64 )Vp->Xr[ Rs2 ] ) >> 32ull );
 #else
