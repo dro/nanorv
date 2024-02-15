@@ -1,5 +1,5 @@
 # NanoRV
-A minimalistic C11 RISC-V (RV32/64[I|M|F]) userspace emulator designed for embedded scripting.
+A lightweight C11 RISC-V (RV32/64[I|M|F]) userspace emulator designed for embedded scripting.
 
 Originally written as the backend for the Nano game engine's scripting system.
 
@@ -9,15 +9,16 @@ No external dependencies, and no implicit depedency on any runtime/LibC (unless 
 * RV32I
 * RV64I
 * RV32M/RV64M
+* Zicsr
+* FP/counter CSRs
 
 ## Bases/extensions that are a work in progress.
-* Zicsr
 * RV32F/RV64F
 * RV32D/RV64D
 * RV32A/AMO
 
 # Building
-NanoRV is designed as a single pair of header and source files, intended to be directly embedded in an existing project.
+NanoRV is intended to be directly embedded in an existing project.
 
 Build configuration is specified through a set of `RV_` prefixed preprocessor macros. For a full listing of supported build options, view nanorv_config.h.
 
@@ -39,20 +40,20 @@ RvTest(
   RV_UINT32    VpMemory[ 1024 ] =
   {
                 // 0000000000000000 <_start>:
-    0xb7100000, //    0:  lui  ra,0x1
+    0xb7100000, //    0:  lui ra,0x1
     0x13010010, //    4:  li  sp,256
-    0x63441100, //    8:  blt  sp,ra,10 
-    0x6f00c000, //    c:  j  18 
+    0x63441100, //    8:  blt sp,ra,10 
+    0x6f00c000, //    c:  j   18 
     
                 // 0000000000000010 :
-    0x93012000, //   10:  li  gp,2
+    0x93012000, //   10:  li gp,2
     0x6f008000, //   14:  j  1c 
     
                 // 0000000000000018:
-    0x93011000, //   18:  li  gp,1
+    0x93011000, //   18:  li gp,1
     
                 // 000000000000001c :
-    0x33c23000, //   1c:  xor  tp,ra,gp
+    0x33c23000, //   1c:  xor tp,ra,gp
     0x73001000, //   20:  ebreak
   };
   
