@@ -168,13 +168,16 @@ typedef struct _RV_PROCESSOR {
 	RV_UINTR Xr[ RVE_MAX_GPR_COUNT ]; /* General purpose registers values. */
 
 	//
-	// RV_FLOATing point context.
+	// Floating-point context.
 	//
 #if (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
 	RV_FLOAT  Fr[ RVE_MAX_FPR_COUNT ]; /* Floating-point register values. */
-	RV_UINT32 FCsr;
 	RV_UINT32 HostFpuCsr;
 #endif
+
+	RV_UINTR  CsrFFlags; /* Floating-Point Accrued Exceptions. */
+	RV_UINTR  CsrFrm;    /* Floating-Point Dynamic Rounding Mode. */
+	RV_UINTR  CsrFcsr;   /* Floating-Point Control and Status Register (frm + fflags). */
 
 	//
 	// Memory accessible to the guest processor.
@@ -184,6 +187,13 @@ typedef struct _RV_PROCESSOR {
 	RV_UINTR  VaSpanGuestBase;
 	VOID*     VaSpanHostBase;
 	RV_SIZE_T VaSpanSize;
+
+	//
+	// Timer states.
+	//
+	RV_UINT64 CsrCycleCount;  /* Cycle counter for RDCYCLE instruction. */
+	RV_UINT64 CsrTime;		  /* Timer for RDTIME instruction. */
+	RV_UINT64 CsrInstRetired; /* Instructions-retired counter for RDINSTRET instruction. */
 
 	//
 	// Per-tick flags and information.

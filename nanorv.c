@@ -226,7 +226,6 @@
 
 //
 // Base opcode RV_OPCODE_MISC_MEM funct3 values (I-type?)
-// fm pred succ rs1 000 rd 0001111 FENCE
 //
 #define RV_MISC_MEM_FUNCT3_FENCE (0b000)
 
@@ -234,6 +233,16 @@
 // Base opcode RV_OPCODE_SYSTEM funct3 values.
 //
 #define RV_SYSTEM_FUNCT3_ECALL_EBREAK  (0b000)
+
+//
+// RV32/RV64 Zicsr Standard Extension RV_OPCODE_SYSTEM funct3 values.
+//
+#define RV_SYSTEM_FUNCT3_CSRRW  (0b001)
+#define RV_SYSTEM_FUNCT3_CSRRS  (0b010)
+#define RV_SYSTEM_FUNCT3_CSRRC  (0b011)
+#define RV_SYSTEM_FUNCT3_CSRRWI (0b101)
+#define RV_SYSTEM_FUNCT3_CSRRSI (0b110)
+#define RV_SYSTEM_FUNCT3_CSRRCI (0b111)
 
 //
 // RV32M RV_OPCODE_OP funct3 values.
@@ -446,6 +455,56 @@
 #define RV_EXCEPTION_STORE_AMO_PAGE_FAULT           15
 
 //
+// CSR numbers/fields.
+//
+
+#define RV_CSR_ACCESS_READ  (1 << 0)
+#define RV_CSR_ACCESS_WRITE (1 << 1)
+
+//
+// Floating-Point Control and Status Registers
+// 0x001 Read/write fflags Floating-Point Accrued Exceptions.
+// 0x002 Read/write frm    Floating-Point Dynamic Rounding Mode.
+// 0x003 Read/write fcsr   Floating-Point Control and Status Register (frm + fflags).
+//
+#define RV_CSR_VALUE_FFLAGS      (0x001)
+#define RV_CSR_PERMISSION_FFLAGS (RV_CSR_ACCESS_READ | RV_CSR_ACCESS_WRITE)
+
+#define RV_CSR_VALUE_FRM         (0x002)
+#define RV_CSR_PERMISSION_FRM    (RV_CSR_ACCESS_READ | RV_CSR_ACCESS_WRITE)
+
+#define RV_CSR_VALUE_FCSR        (0x003)
+#define RV_CSR_PERMISSION_FCSR   (RV_CSR_ACCESS_READ | RV_CSR_ACCESS_WRITE)
+
+//
+// Counters and Timers
+// 0xC00 Read-only cycle    Cycle counter for RDCYCLE instruction.
+// 0xC01 Read-only time     Timer for RDTIME instruction.
+// 0xC02 Read-only instret  Instructions-retired counter for RDINSTRET instruction.
+// 0xC80 Read-only cycleh   Upper 32 bits of cycle, RV32I only.
+// 0xC81 Read-only timeh    Upper 32 bits of time, RV32I only.
+// 0xC82 Read-only instreth Upper 32 bits of instret, RV32I only.
+//
+#define RV_CSR_VALUE_CYCLE         (0xC00)
+#define RV_CSR_PERMISSION_CYCLE    (RV_CSR_ACCESS_READ)
+
+#define RV_CSR_VALUE_TIME          (0xC01)
+#define RV_CSR_PERMISSION_TIME     (RV_CSR_ACCESS_READ)
+
+#define RV_CSR_VALUE_INSTRET       (0xC02)
+#define RV_CSR_PERMISSION_INSTRET  (RV_CSR_ACCESS_READ)
+
+#define RV_CSR_VALUE_CYCLEH        (0xC80)
+#define RV_CSR_PERMISSION_CYCLEH   (RV_CSR_ACCESS_READ)
+
+#define RV_CSR_VALUE_TIMEH         (0xC81)
+#define RV_CSR_PERMISSION_TIMEH    (RV_CSR_ACCESS_READ)
+
+#define RV_CSR_VALUE_INSTRETH      (0xC82)
+#define RV_CSR_PERMISSION_INSTRETH (RV_CSR_ACCESS_READ)
+
+
+//
 // MMU-related values.
 //
 
@@ -610,12 +669,12 @@ RvpInstructionExecuteOpcodeLoad(
 	_In_    RV_UINT32     Instruction
 	)
 {
-	RV_UINT32   Funct3;
-	RV_UINT32   Rd;
-	RV_UINT32   Rs1;
-	RV_UINT32   Offset;
-	RV_UINTR Address;
-	VOID*    HostData;
+	RV_UINT32 Funct3;
+	RV_UINT32 Rd;
+	RV_UINT32 Rs1;
+	RV_UINT32 Offset;
+	RV_UINTR  Address;
+	VOID*     HostData;
 
 	//
 	// Decode I-type instruction fields.
@@ -718,12 +777,12 @@ RvpInstructionExecuteOpcodeStore(
 	_In_    RV_UINT32     Instruction
 	)
 {
-	RV_UINT32   Funct3;
-	RV_UINT32   Offset;
-	RV_UINT32   Rs1;
-	RV_UINT32   Rs2;
-	RV_UINTR Address;
-	VOID*    HostData;
+	RV_UINT32 Funct3;
+	RV_UINT32 Offset;
+	RV_UINT32 Rs1;
+	RV_UINT32 Rs2;
+	RV_UINTR  Address;
+	VOID*     HostData;
 
 	//
 	// Decode S-type instruction fields.
@@ -1646,6 +1705,126 @@ RvpInstructionExecuteOpcodeJAL(
 	Vp->Pc = TargetAddress;
 }
 
+_Success_( return )
+static
+RV_BOOLEAN
+RvpCsrHandleWrite(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT32     Csr,
+	_In_    RV_UINTR      NewValue
+	)
+{
+	switch( Csr ) {
+	case RV_CSR_VALUE_FFLAGS:
+		Vp->CsrFFlags = NewValue;
+		break;
+	case RV_CSR_VALUE_FRM:
+		Vp->CsrFrm = NewValue;
+		break;
+	case RV_CSR_VALUE_FCSR:
+		Vp->CsrFcsr = NewValue;
+		break;
+	default:
+		return RV_FALSE;
+	}
+
+	return RV_TRUE;
+}
+
+_Success_( return )
+static
+RV_BOOLEAN
+RvpCsrHandleRead(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT32     Csr,
+	_Out_   RV_UINTR*     pValue
+	)
+{
+	switch( Csr ) {
+	case RV_CSR_VALUE_FFLAGS:
+		*pValue = Vp->CsrFFlags;
+		break;
+	case RV_CSR_VALUE_FRM:
+		*pValue = Vp->CsrFrm;
+		break;
+	case RV_CSR_VALUE_FCSR:
+		*pValue = Vp->CsrFcsr;
+		break;
+	case RV_CSR_VALUE_CYCLE:
+		*pValue = ( RV_UINTR )Vp->CsrCycleCount;
+		break;
+	case RV_CSR_VALUE_TIME:
+		*pValue = ( RV_UINTR )Vp->CsrTime;
+		break;
+	case RV_CSR_VALUE_INSTRET:
+		*pValue = ( RV_UINTR )Vp->CsrInstRetired;
+		break;
+#if defined (RV_OPT_RV32I) //&& !defined(RV_OPT_RV64I)
+	case RV_CSR_VALUE_CYCLEH:
+		*pValue = ( RV_UINT32 )( Vp->CsrCycleCount >> 32ull );
+		break;
+	case RV_CSR_VALUE_TIMEH:
+		*pValue = ( RV_UINT32 )( Vp->CsrTime >> 32ull );
+		break;
+	case RV_CSR_VALUE_INSTRETH:
+		*pValue = ( RV_UINT32 )( Vp->CsrTime >> 32ull );
+		break;
+#endif
+	default:
+		return RV_FALSE;
+	}
+
+	return RV_TRUE;
+}
+
+static
+RV_UINTR
+RvpCsrAtomicSwap(
+	_Inout_ RV_PROCESSOR* Vp,
+	_Inout_ RV_UINTR*     pCsrRegister,
+	_In_    RV_UINTR      NewValue
+	)
+{
+	RV_UINTR OldValue;
+
+	OldValue      = *pCsrRegister;
+	*pCsrRegister = NewValue;
+
+	return OldValue;
+}
+
+static
+RV_UINTR
+RvpCsrAtomicReadAndSetBits(
+	_Inout_ RV_PROCESSOR* Vp,
+	_Inout_ RV_UINTR*     pCsrRegister,
+	_In_    RV_UINTR      SetBitMask
+	)
+{
+	RV_UINTR OldValue;
+
+	OldValue      = *pCsrRegister;
+	*pCsrRegister = ( OldValue | SetBitMask );
+
+	return OldValue;
+}
+
+static
+RV_UINTR
+RvpCsrAtomicReadAndClearBits(
+	_Inout_ RV_PROCESSOR* Vp,
+	_Inout_ RV_UINTR*     pCsrRegister,
+	_In_    RV_UINTR      ClearBitMask
+	)
+{
+	RV_UINTR OldValue;
+
+	OldValue      = *pCsrRegister;
+	*pCsrRegister = ( OldValue & ~ClearBitMask );
+
+	return OldValue;
+}
+
 static
 VOID
 RvpInstructionExecuteOpcodeSystem(
@@ -1657,6 +1836,8 @@ RvpInstructionExecuteOpcodeSystem(
 	RV_UINT32 Rs1;
 	RV_UINT32 Funct3;
 	RV_UINT32 Funct12;
+	RV_UINT32 CsrIndex;
+	RV_UINTR  CsrOldValue;
 
 	//
 	// Decode I-type fields.
@@ -1665,6 +1846,21 @@ RvpInstructionExecuteOpcodeSystem(
 	Rs1     = ( ( Instruction >> RV_INST_I_RS1_SHIFT ) & RV_INST_I_RS1_MASK );
 	Funct3  = ( ( Instruction >> RV_INST_I_FUNCT3_SHIFT ) & RV_INST_I_FUNCT3_MASK );
 	Funct12 = ( ( Instruction >> RV_INST_I_IMM_11_0_SHIFT ) & RV_INST_I_IMM_11_0_MASK );
+
+	//
+	// Validate register indices.
+	//
+	if( Rd >= RV_COUNTOF( Vp->Xr ) || Rs1 >= RV_COUNTOF( Vp->Xr ) ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// All CSR instructions atomically read-modify-write a single CSR, whose CSR specifier is encoded
+	// in the 12-bit csr field of the instruction held in bits 31–20. The immediate forms use a 5-bit
+	// zero-extended immediate encoded in the rs1 field.
+	//
+	CsrIndex = Funct12;
 
 	//
 	// SYSTEM instructions are used to access system functionality that might
@@ -1680,6 +1876,180 @@ RvpInstructionExecuteOpcodeSystem(
 			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
 			return;
 		}
+		break;
+	case RV_SYSTEM_FUNCT3_CSRRW:
+		//
+		// The CSRRW (Atomic Read/Write CSR) instruction atomically swaps values in the CSRs and
+		// integer registers. CSRRW reads the old value of the CSR, zero-extends the value to XLEN bits,
+		// then writes it to integer register rd. The initial value in rs1 is written to the CSR.
+		//
+		if( RvpCsrHandleRead( Vp, CsrIndex, &CsrOldValue ) == RV_FALSE ) {
+			//
+			// If rd=x0, then the instruction shall not read the CSR and shall not cause any of the side
+			// effects that might occur on a CSR read.
+			//
+			if( Rd != 0 ) {
+				RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+				return;
+			}
+		}
+
+		//
+		// Update CSR value, if not writable, throw illegal instruction exception.
+		//
+		if( RvpCsrHandleWrite( Vp, CsrIndex, Vp->Xr[ Rs1 ] ) == RV_FALSE ) {
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+
+		Vp->Xr[ Rd ] = CsrOldValue;
+		break;
+	case RV_SYSTEM_FUNCT3_CSRRS:
+		//
+		// The CSRRS (Atomic Read and Set Bits in CSR) instruction reads the value of the CSR, zeroextends
+		// the value to XLEN bits, and writes it to integer register rd. The initial value in integer
+		// register rs1 is treated as a bit mask that specifies bit positions to be set in the CSR. Any bit that
+		// is high in rs1 will cause the corresponding bit to be set in the CSR, if that CSR bit is writable.
+		// Other bits in the CSR are unaffected (though CSRs might have side effects when written).
+		//
+		if( RvpCsrHandleRead( Vp, CsrIndex, &CsrOldValue ) == RV_FALSE ) {
+			//
+			// Both CSRRS and CSRR will always read the CSR and cause any read side effects regardless of rd and rs1 fields.
+			//
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+
+		}
+			
+		//
+		// For both CSRRS and CSRRC, if rs1=x0, then the instruction will not write to the CSR at all, and
+		// so shall not cause any of the side effects that might otherwise occur on a CSR write, such as raising
+		// illegal instruction exceptions on accesses to read-only CSRs.
+		//
+		if( Rs1 != 0 ) {
+			//
+			// Update CSR value, if not writable, throw illegal instruction exception.
+			//
+			if( RvpCsrHandleWrite( Vp, CsrIndex, ( CsrOldValue | Vp->Xr[ Rs1 ] ) ) == RV_FALSE ) {
+				RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+				return;
+			}
+		}
+
+		Vp->Xr[ Rd ] = CsrOldValue;
+		break;
+	case RV_SYSTEM_FUNCT3_CSRRC:
+		//
+		// The CSRRC (Atomic Read and Clear Bits in CSR) instruction reads the value of the CSR, zeroextends
+		// the value to XLEN bits, and writes it to integer register rd. The initial value in integer
+		// register rs1 is treated as a bit mask that specifies bit positions to be cleared in the CSR. Any bit
+		// that is high in rs1 will cause the corresponding bit to be cleared in the CSR, if that CSR bit is
+		// writable. Other bits in the CSR are unaffected.
+		//
+		if( RvpCsrHandleRead( Vp, CsrIndex, &CsrOldValue ) == RV_FALSE ) {
+			//
+			// Both CSRRS and CSRRC will always read the CSR and cause any read side effects regardless of rd and rs1 fields.
+			//
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+			
+		//
+		// For both CSRRS and CSRRC, if rs1=x0, then the instruction will not write to the CSR at all, and
+		// so shall not cause any of the side effects that might otherwise occur on a CSR write, such as raising
+		// illegal instruction exceptions on accesses to read-only CSRs.
+		//
+		if( Rs1 != 0 ) {
+			//
+			// Update CSR value, if not writable, throw illegal instruction exception.
+			//
+			if( RvpCsrHandleWrite( Vp, CsrIndex, ( CsrOldValue & ~Vp->Xr[ Rs1 ] ) ) == RV_FALSE ) {
+				RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+				return;
+			}
+		}
+
+		Vp->Xr[ Rd ] = CsrOldValue;
+		break;
+	case RV_SYSTEM_FUNCT3_CSRRWI:
+		//
+		// The CSRRWI, CSRRSI, and CSRRCI variants are similar to CSRRW, CSRRS, and CSRRC respectively,
+		// except they update the CSR using an XLEN-bit value obtained by zero-extending a 5-bit
+		// unsigned immediate (uimm[4:0]) field encoded in the rs1 field instead of a value from an integer
+		// register.
+		//
+		if( RvpCsrHandleRead( Vp, CsrIndex, &CsrOldValue ) == RV_FALSE ) {
+			//
+			// For CSRRWI, if rd=x0, then the instruction shall not read the CSR and shall not cause any
+			// of the side effects that might occur on a CSR read.
+			//
+			if( Rd != 0 ) {
+				RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+				return;
+			}
+		}
+
+		//
+		// Update CSR value, if not writable, throw illegal instruction exception.
+		//
+		if( RvpCsrHandleWrite( Vp, CsrIndex, ( RV_UINTR )Rs1 ) == RV_FALSE ) {
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+
+		Vp->Xr[ Rd ] = CsrOldValue;
+		break;
+	case RV_SYSTEM_FUNCT3_CSRRSI:
+		if( RvpCsrHandleRead( Vp, CsrIndex, &CsrOldValue ) == RV_FALSE ) {
+			//
+			// Both CSRRSI and CSRRCI will always read the CSR and cause any read side effects regardless of rd and rs1 fields.
+			//
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+
+		//
+		// For CSRRSI and CSRRCI, if the uimm[4:0] field is zero, then these instructions will not
+		// write to the CSR, and shall not cause any of the side effects that might otherwise occur on a CSR
+		// write.
+		//
+		if( Rs1 != 0 ) {
+			//
+			// Update CSR value, if not writable, throw illegal instruction exception.
+			//
+			if( RvpCsrHandleWrite( Vp, CsrIndex, ( CsrOldValue | ( ( RV_UINTR )Rs1 ) ) ) == RV_FALSE ) {
+				RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+				return;
+			}
+		}
+
+		Vp->Xr[ Rd ] = CsrOldValue;
+		break;
+	case RV_SYSTEM_FUNCT3_CSRRCI:
+		if( RvpCsrHandleRead( Vp, CsrIndex, &CsrOldValue ) == RV_FALSE ) {
+			//
+			// Both CSRRSI and CSRRCI will always read the CSR and cause any read side effects regardless of rd and rs1 fields.
+			//
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+
+		//
+		// For CSRRSI and CSRRCI, if the uimm[4:0] field is zero, then these instructions will not
+		// write to the CSR, and shall not cause any of the side effects that might otherwise occur on a CSR
+		// write.
+		//
+		if( Rs1 != 0 ) {
+			//
+			// Update CSR value, if not writable, throw illegal instruction exception.
+			//
+			if( RvpCsrHandleWrite( Vp, CsrIndex, ( CsrOldValue & ~( ( RV_UINTR )Rs1 ) ) ) == RV_FALSE ) {
+				RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+				return;
+			}
+		}
+
+		Vp->Xr[ Rd ] = CsrOldValue;
 		break;
 	default:
 		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
@@ -2479,4 +2849,11 @@ RvpTickExecute(
 	// Reset zero register.
 	//
 	Vp->Xr[ 0 ] = 0;
+
+	//
+	// Increase timers.
+	//
+	Vp->CsrTime        += 1; /* TODO. */
+	Vp->CsrCycleCount  += 1;
+	Vp->CsrInstRetired += 1;
 }
