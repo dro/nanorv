@@ -2776,7 +2776,7 @@ RvpTickExecute(
 	Vp->Xr[ 0 ] = 0;
 
 	//
-	// Increase timers.
+	// Increase counters.
 	//
 	Vp->CsrTime        += 1; /* TODO. */
 	Vp->CsrCycleCount  += 1;
