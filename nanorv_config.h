@@ -15,7 +15,12 @@
 #define RV_OPT_RV32M
 
 //
-// Enable base RV64I instruction set (and RV64M if RV32M enabled).
+// Enable RV32F single precision floating-point extension (and RV64F if 
+//
+#define RV_OPT_RV32F
+
+//
+// Enable base RV64I instruction set (and RV64M/RV64F if enabled).
 //
 #define RV_OPT_RV64I
 
@@ -42,7 +47,7 @@
 //
 // Allow the use of SSE intrinsics (used by FP code).
 //
-#define RV_OPT_BUILD_SSE
+// #define RV_OPT_BUILD_SSE
 
 //
 // Allow the use of CRT/LibC functions (used by FP code).
