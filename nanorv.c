@@ -187,6 +187,8 @@
 #define RV_LOAD_FUNCT3_LW  (0b010)
 #define RV_LOAD_FUNCT3_LBU (0b100)
 #define RV_LOAD_FUNCT3_LHU (0b101)
+#define RV_LOAD_FUNCT3_LD  (0b011) /* RV64I */
+#define RV_LOAD_FUNCT3_LWU (0b110) /* RV64I */
 
 //
 // Base opcode RV_OPCODE_STORE funct3 values (S-type).
@@ -194,7 +196,8 @@
 #define RV_STORE_FUNCT3_SB (0b000)
 #define RV_STORE_FUNCT3_SH (0b001)
 #define RV_STORE_FUNCT3_SW (0b010)
-#define RV_STORE_FUNCT3_SD (0b011)
+#define RV_STORE_FUNCT3_SD (0b011) /* RV64I */
+
 
 //
 // Base opcode RV_OPCODE_OP_IMM funct3 values (I-type).
@@ -672,7 +675,7 @@ RvpInstructionExecuteOpcodeLoad(
 	RV_UINT32 Funct3;
 	RV_UINT32 Rd;
 	RV_UINT32 Rs1;
-	RV_UINT32 Offset;
+	RV_UINT32 UOffset32;
 	RV_UINTR  Address;
 	VOID*     HostData;
 
@@ -682,8 +685,8 @@ RvpInstructionExecuteOpcodeLoad(
 	Funct3 = ( ( Instruction >> RV_INST_I_FUNCT3_SHIFT ) & RV_INST_I_FUNCT3_MASK );
 	Rd     = ( ( Instruction >> RV_INST_I_RD_SHIFT ) & RV_INST_I_RD_MASK );
 	Rs1    = ( ( Instruction >> RV_INST_I_RS1_SHIFT ) & RV_INST_I_RS1_MASK );
-	Offset = ( ( Instruction >> RV_INST_I_IMM_11_0_SHIFT ) & RV_INST_I_IMM_11_0_MASK );
-	Offset = RvpSignExtend32( Vp, Offset, 11 );
+	UOffset32 = ( ( Instruction >> RV_INST_I_IMM_11_0_SHIFT ) & RV_INST_I_IMM_11_0_MASK );
+	UOffset32 = RvpSignExtend32( Vp, UOffset32, 11 );
 
 	//
 	// Validate register indices.
@@ -697,24 +700,37 @@ RvpInstructionExecuteOpcodeLoad(
 	// The effective address is obtained by adding register rs1 to the sign-extended 12-bit offset.
 	// Loads copy a value from memory to register rd. Stores copy the value in register rs2 to memory.
 	//
-	Address = ( Vp->Xr[ Rs1 ] + ( RV_INTR )( RV_INT32 )Offset );
+	Address = ( Vp->Xr[ Rs1 ] + ( RV_INTR )( RV_INT32 )UOffset32 );
 
 	//
 	// Lookup the host data address for the given guest effective address, and perform the load.
 	// TODO: Update this to use generic ReadMemory function to handle cross
 	// page-boundary accesses once MMU is fleshed out!
 	// 
-	// Base opcode RV_OPCODE_LOAD funct3 values (I-type).
+	// RV_OPCODE_LOAD funct3 values (I-type).
 	// imm[11:0] rs1 000 rd 0000011 LB
 	// imm[11:0] rs1 001 rd 0000011 LH
 	// imm[11:0] rs1 010 rd 0000011 LW
 	// imm[11:0] rs1 100 rd 0000011 LBU
 	// imm[11:0] rs1 101 rd 0000011 LHU
+	// imm[11:0] rs1 011 rd 0000011 LD  (RV64I)
+	// imm[11:0] rs1 110 rd 0000011 LWU (RV64I)
 	//
 	switch( Funct3 ) {
-	case RV_LOAD_FUNCT3_LW:
+#if defined(RV_OPT_RV64I)
+	case RV_LOAD_FUNCT3_LD:
 		//
-		// The LW instruction loads a 32-bit value from memory into rd.
+		// The LD instruction loads a 64-bit value from memory into register rd for RV64I.
+		//
+		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT64 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
+			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+			return;
+		}
+		Vp->Xr[ Rd ] = *( RV_UINT64* )HostData;
+		break;
+	case RV_LOAD_FUNCT3_LWU:
+		//
+		// LWU zero-extends the 32-bit value from memory for RV64I.
 		//
 		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT32 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
 			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
@@ -722,19 +738,30 @@ RvpInstructionExecuteOpcodeLoad(
 		}
 		Vp->Xr[ Rd ] = *( RV_UINT32* )HostData;
 		break;
+#endif
+	case RV_LOAD_FUNCT3_LW:
+		//
+		// LW loads a 32-bit value from memory, then sign-extends to XLEN-bits before storing it in rd.
+		//
+		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT32 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
+			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+			return;
+		}
+		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )( *( RV_UINT32* )HostData );
+		break;
 	case RV_LOAD_FUNCT3_LH:
 		//
-		// LH loads a 16-bit value from memory, then sign-extends to 32-bits before storing in rd.
+		// LH loads a 16-bit value from memory, then sign-extends to XLEN-bits before storing in rd.
 		//
 		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT16 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
 			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
 			return;
 		}
-		Vp->Xr[ Rd ] = RvpSignExtend32( Vp, *( RV_UINT16* )HostData, 15 );
+		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )RvpSignExtend32( Vp, *( RV_UINT16* )HostData, 15 );
 		break;
 	case RV_LOAD_FUNCT3_LHU:
 		//
-		// LHU loads a 16-bit value from memory but then zero extends to 32-bits before storing in rd.
+		// LHU loads a 16-bit value from memory but then zero extends to XLEN-bits before storing in rd.
 		//
 		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT16 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
 			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
@@ -744,17 +771,17 @@ RvpInstructionExecuteOpcodeLoad(
 		break;
 	case RV_LOAD_FUNCT3_LB:
 		//
-		// LB loads an 8-bit value from memory, then sign-extends to 32-bits before storing in rd.
+		// LB loads an 8-bit value from memory, then sign-extends to XLEN-bits before storing in rd.
 		//
 		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT8 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
 			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
 			return;
 		}
-		Vp->Xr[ Rd ] = RvpSignExtend32( Vp, *( RV_UINT8* )HostData, 7 );
+		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )RvpSignExtend32( Vp, *( RV_UINT8* )HostData, 7 );
 		break;
 	case RV_LOAD_FUNCT3_LBU:
 		//
-		// LBU loads an 8-bit value from memory but then zero extends to 32-bits before storing in rd.
+		// LBU loads an 8-bit value from memory but then zero extends to XLEN-bits before storing in rd.
 		//
 		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT8 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
 			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
@@ -817,6 +844,7 @@ RvpInstructionExecuteOpcodeStore(
 	// imm[11:5] rs2 rs1 000 imm[4:0] 0100011 SB
 	// imm[11:5] rs2 rs1 001 imm[4:0] 0100011 SH
 	// imm[11:5] rs2 rs1 010 imm[4:0] 0100011 SW
+	// imm[11:5] rs2 rs1 011 imm[4:0] 0100011 SD (RV64I)
 	//
 	switch( Funct3 ) {
 	case RV_STORE_FUNCT3_SB:
@@ -840,6 +868,15 @@ RvpInstructionExecuteOpcodeStore(
 		}
 		*( RV_UINT32* )HostData = ( RV_UINT32 )Vp->Xr[ Rs2 ];
 		break;
+#if defined(RV_OPT_RV64I)
+	case RV_STORE_FUNCT3_SD:
+		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT64 ), RV_PAGE_FLAG_W, &HostData ) == RV_FALSE ) {
+			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+			return;
+		}
+		*( RV_UINT64* )HostData = ( RV_UINT64 )Vp->Xr[ Rs2 ];
+		break;
+#endif
 	default:
 		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
 		return;
