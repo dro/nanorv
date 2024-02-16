@@ -150,8 +150,6 @@ typedef struct _RV_PROCESSOR {
 	RV_UINT32 HostFpuCsr;
 #endif
 
-	RV_UINTR CsrFFlags; /* Floating-Point Accrued Exceptions. */
-	RV_UINTR CsrFrm;    /* Floating-Point Dynamic Rounding Mode. */
 	RV_UINTR CsrFcsr;   /* Floating-Point Control and Status Register (frm + fflags). */
 
 	//

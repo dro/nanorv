@@ -1796,18 +1796,29 @@ RvpCsrHandleWrite(
 	_In_    RV_UINTR      NewValue
 	)
 {
-	//
-	// TODO: Handle logic for merging frm/fflags access into single FCSR value.
-	//
 	switch( Csr ) {
 	case RV_CSR_VALUE_FFLAGS:
-		Vp->CsrFFlags = NewValue;
+		//
+		// FFLAGS is a helper CSR that accesses just the FFLAGS field of the actual FCSR.
+		//
+		Vp->CsrFcsr &= ~( RV_FCSR_FFLAGS_MASK << RV_FCSR_FFLAGS_SHIFT );
+		Vp->CsrFcsr |= ( ( NewValue & RV_FCSR_FFLAGS_MASK ) << RV_FCSR_FFLAGS_SHIFT );
 		break;
 	case RV_CSR_VALUE_FRM:
-		Vp->CsrFrm = NewValue;
+		//
+		// FRM is a helper CSR that accesses just the FRM field of the actual FCSR.
+		//
+		Vp->CsrFcsr &= ~( RV_FCSR_FRM_MASK << RV_FCSR_FRM_SHIFT );
+		Vp->CsrFcsr |= ( ( NewValue & RV_FCSR_FRM_MASK ) << RV_FCSR_FRM_SHIFT );
 		break;
 	case RV_CSR_VALUE_FCSR:
-		Vp->CsrFcsr = NewValue;
+		//
+		// Bits 31-8 of the fcsr are reserved for other standard extensions, including the "L" standard
+		// extension for decimal floating-point. If these extensions are not present, implementations shall
+		// ignore writes to these bits and supply a zero value when read. Standard software should preserve
+		// the contents of these bits.
+		//
+		Vp->CsrFcsr = ( NewValue & ~( RV_FCSR_RESERVED0_MASK << RV_FCSR_RESERVED0_SHIFT ) );
 		break;
 	default:
 		return RV_FALSE;
@@ -1825,18 +1836,27 @@ RvpCsrHandleRead(
 	_Out_   RV_UINTR*     pValue
 	)
 {
-	//
-	// TODO: Handle logic for merging frm/fflags access into single FCSR value.
-	//
 	switch( Csr ) {
 	case RV_CSR_VALUE_FFLAGS:
-		*pValue = Vp->CsrFFlags;
+		//
+		// FFLAGS is a helper CSR that accesses just the FFLAGS field of the actual FCSR.
+		//
+		*pValue = ( Vp->CsrFcsr & ( RV_FCSR_FFLAGS_MASK << RV_FCSR_FFLAGS_SHIFT ) );
 		break;
 	case RV_CSR_VALUE_FRM:
-		*pValue = Vp->CsrFrm;
+		//
+		// FRM is a helper CSR that accesses just the FRM field of the actual FCSR.
+		//
+		*pValue = ( Vp->CsrFcsr & ( RV_FCSR_FRM_MASK << RV_FCSR_FRM_SHIFT ) );
 		break;
 	case RV_CSR_VALUE_FCSR:
-		*pValue = Vp->CsrFcsr;
+		//
+		// Bits 31-8 of the fcsr are reserved for other standard extensions, including the "L" standard
+		// extension for decimal floating-point. If these extensions are not present, implementations shall
+		// ignore writes to these bits and supply a zero value when read. Standard software should preserve
+		// the contents of these bits.
+		//
+		*pValue = ( Vp->CsrFcsr & ~( RV_FCSR_RESERVED0_MASK << RV_FCSR_RESERVED0_SHIFT ) );
 		break;
 	case RV_CSR_VALUE_CYCLE:
 		*pValue = ( RV_UINTR )Vp->CsrCycleCount;
