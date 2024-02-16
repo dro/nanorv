@@ -15,14 +15,20 @@
 #define RV_OPT_RV32M
 
 //
-// Enable RV32F single precision floating-point extension (and RV64F if 
-//
-#define RV_OPT_RV32F
-
-//
 // Enable base RV64I instruction set (and RV64M/RV64F if enabled).
 //
 #define RV_OPT_RV64I
+
+//
+// Enable RV32F single precision floating-point extension (and RV64F if 
+//
+// #define RV_OPT_RV32F
+
+//
+// Indicates that the host uses an IEEE-754 compliant FPU (only relevant for RV32F).
+// This should be true for almost any modern processor.
+//
+#define RV_OPT_BUILD_IEEE_754
 
 //
 // Allow the use of MSVC-specific extensions and intrinsics.
