@@ -17,6 +17,7 @@
 //
 #ifdef RV_OPT_BUILD_LIBC
 #include <math.h>
+#include <float.h>
 #endif
 
 //
@@ -34,7 +35,6 @@
 #define int128_t  __int128
 #define uint128_t unsigned __int128
 #endif
-
 
 //
 // Instruction formats/instruction encoding helpers.
@@ -382,25 +382,20 @@
 //
 // RV32F RV_OPCODE_OP_FP funct7 values.
 //
-#define RV_OP_FP_FUNCT7_FADD_S	    (0)
-#define RV_OP_FP_FUNCT7_FSUB_S	    (4)
-#define RV_OP_FP_FUNCT7_FMUL_S	    (8)
-#define RV_OP_FP_FUNCT7_FDIV_S	    (12)
-#define RV_OP_FP_FUNCT7_FSQRT_S	    (44)
-#define RV_OP_FP_FUNCT7_FSGNJ_S	    (16)
-#define RV_OP_FP_FUNCT7_FSGNJN_S    (16)
-#define RV_OP_FP_FUNCT7_FSGNJX_S    (16)
-#define RV_OP_FP_FUNCT7_FMIN_FMAX_S (20)
-#define RV_OP_FP_FUNCT7_FCVT_W_S    (96)
-#define RV_OP_FP_FUNCT7_FCVT_WU_S   (96)
-#define RV_OP_FP_FUNCT7_FMV_X_W	    (112)
-#define RV_OP_FP_FUNCT7_FEQ_S	    (80)
-#define RV_OP_FP_FUNCT7_FLT_S	    (80)
-#define RV_OP_FP_FUNCT7_FLE_S	    (80)
-#define RV_OP_FP_FUNCT7_FCLASS_S    (112)
-#define RV_OP_FP_FUNCT7_FCVT_S_W    (104)
-#define RV_OP_FP_FUNCT7_FCVT_S_WU   (104)
-#define RV_OP_FP_FUNCT7_FMV_W_X	    (120)
+#define RV_OP_FP_FUNCT7_FADD_S	          (0)
+#define RV_OP_FP_FUNCT7_FSUB_S	          (4)
+#define RV_OP_FP_FUNCT7_FMUL_S	          (8)
+#define RV_OP_FP_FUNCT7_FDIV_S	          (12)
+#define RV_OP_FP_FUNCT7_FSQRT_S	          (44)
+#define RV_OP_FP_FUNCT7_FSGNJ_S	          (16)
+#define RV_OP_FP_FUNCT7_FSGNJN_S          (16)
+#define RV_OP_FP_FUNCT7_FSGNJX_S          (16)
+#define RV_OP_FP_FUNCT7_FMIN_FMAX_S       (20)
+#define RV_OP_FP_FUNCT7_FCVT_W_S_WU_S     (96)
+#define RV_OP_FP_FUNCT7_FMV_X_W_FCLASS_S  (112)
+#define RV_OP_FP_FUNCT7_FEQ_S_FLT_S_FLE_S (80)
+#define RV_OP_FP_FUNCT7_FCVT_S_W_S_WU     (104)
+#define RV_OP_FP_FUNCT7_FMV_W_X	          (120)
 
 //
 // Special RV32F rs2 values.
@@ -453,7 +448,7 @@
 #define RV_FCSR_DZ_SHIFT        (3ul) /* Divide by Zero. */
 #define RV_FCSR_DZ_MASK         (1ul)
 #define RV_FCSR_DZ_FLAG         (RV_FCSR_DZ_MASK << RV_FCSR_DZ_SHIFT)
-#define RV_FCSR_NV_SHIFT        (4ul) /* Divide by Zero. */
+#define RV_FCSR_NV_SHIFT        (4ul) /* Invalid operation / Divide by Zero. */
 #define RV_FCSR_NV_MASK         (1ul)
 #define RV_FCSR_NV_FLAG         (RV_FCSR_NV_MASK << RV_FCSR_NV_SHIFT)
 #define RV_FCSR_FRM_SHIFT       (5ul) /* Rounding Mode. */
@@ -472,6 +467,20 @@
 #define RV_ROUNDING_MODE_RESERVED0  (5) /* Reserved for future use.								 */
 #define RV_ROUNDING_MODE_RESERVED1  (6) /* Reserved for future use.								 */
 #define RV_ROUNDING_MODE_DYN        (7) /* Only valid if specified in an instruction's rm field. */
+
+//
+// RV32F classification values.
+//
+#define RV_FCLASS_RD_NEGATIVE_INF       (1ul << 0)
+#define RV_FCLASS_RD_NEGATIVE_NORMAL    (1ul << 1)
+#define RV_FCLASS_RD_NEGATIVE_SUBNORMAL (1ul << 2)
+#define RV_FCLASS_RD_NEGATIVE_ZERO      (1ul << 3)
+#define RV_FCLASS_RD_POSITIVE_ZERO      (1ul << 4)
+#define RV_FCLASS_RD_POSITIVE_SUBNORMAL (1ul << 5)
+#define RV_FCLASS_RD_POSITIVE_NORMAL    (1ul << 6)
+#define RV_FCLASS_RD_POSITIVE_INF       (1ul << 7)
+#define RV_FCLASS_RD_SIGNALING_NAN      (1ul << 8)
+#define RV_FCLASS_RD_QUIET_NAN          (1ul << 9)
 
 //
 // RV interrupt 0 base exception indices.
@@ -565,6 +574,8 @@
 	 (((Opcode) & RV_INST_R_OPCODE_MASK)              \
 	 | (((Funct3) & RV_INST_R_FUNCT3_MASK) << 7ul)    \
 	 | (((Funct7) & RV_INST_R_FUNCT7_MASK) << 10ul))
+
+
 
 //
 // Exception/interrupt functions.
@@ -700,6 +711,7 @@ RvpFetchInstructionWord(
 //
 // RV32I opcodes.
 //
+
 
 static
 VOID
@@ -1213,7 +1225,6 @@ RvpInstructionExecuteOpcodeOpImm(
 //
 // RV32M instructions.
 //
-
 #if defined(RV_OPT_RV32M)
 
 //
@@ -1770,6 +1781,12 @@ RvpInstructionExecuteOpcodeJAL(
 	Vp->Pc = TargetAddress;
 }
 
+
+//
+// System opcode and zicsr implementation.
+//
+
+
 _Success_( return )
 static
 RV_BOOLEAN
@@ -1779,6 +1796,9 @@ RvpCsrHandleWrite(
 	_In_    RV_UINTR      NewValue
 	)
 {
+	//
+	// TODO: Handle logic for merging frm/fflags access into single FCSR value.
+	//
 	switch( Csr ) {
 	case RV_CSR_VALUE_FFLAGS:
 		Vp->CsrFFlags = NewValue;
@@ -1805,6 +1825,9 @@ RvpCsrHandleRead(
 	_Out_   RV_UINTR*     pValue
 	)
 {
+	//
+	// TODO: Handle logic for merging frm/fflags access into single FCSR value.
+	//
 	switch( Csr ) {
 	case RV_CSR_VALUE_FFLAGS:
 		*pValue = Vp->CsrFFlags;
@@ -1824,7 +1847,7 @@ RvpCsrHandleRead(
 	case RV_CSR_VALUE_INSTRET:
 		*pValue = ( RV_UINTR )Vp->CsrInstRetired;
 		break;
-#if defined (RV_OPT_RV32I) //&& !defined(RV_OPT_RV64I)
+#if defined (RV_OPT_RV32I) && !defined(RV_OPT_RV64I)
 	case RV_CSR_VALUE_CYCLEH:
 		*pValue = ( RV_UINT32 )( Vp->CsrCycleCount >> 32ull );
 		break;
@@ -2076,12 +2099,16 @@ RvpInstructionExecuteOpcodeSystem(
 	Vp->Pc += 4;
 }
 
+
+//
+// RV64I opcodes.
+//
 #if defined(RV_OPT_RV64I)
-#if defined(RV_OPT_RV32M)
 
 //
 // RV64M opcodes.
 //
+#if defined(RV_OPT_RV32M)
 
 static
 VOID
@@ -2186,6 +2213,7 @@ RvpInstructionExecuteOpcodeOp32Rv64m(
 
 	Vp->Pc += 4;
 }
+
 #endif
 
 //
@@ -2365,7 +2393,7 @@ RvpInstructionExecuteOpcodeOpImm32(
 #endif
 
 //
-// Atomic memory operation opcodes.
+// Atomic memory operation instructions.
 //
 
 static
@@ -2380,53 +2408,19 @@ RvpInstructionExecuteOpcodeAmo(
 }
 
 //
-// RV32F instructions, WIP.
+// RV32F implementation, WIP.
 //
 
-#if 0 && defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D)
-static
-VOID
-RvpInstructionExecuteOpcodeMAdd(
-	_Inout_ RV_PROCESSOR* Vp,
-	_In_    RV_UINT32     Instruction
-	)
-{
-	RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-	return;
-}
+#if 0 && (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
+typedef union _RV_FLOAT32_RAW {
+	RV_FLOAT  F32;
+	RV_UINT32 U32
+} RV_FLOAT32_RAW;
 
-static
-VOID
-RvpInstructionExecuteOpcodeMSub(
-	_Inout_ RV_PROCESSOR* Vp,
-	_In_    RV_UINT32     Instruction
-	)
-{
-	RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-	return;
-}
-
-static
-VOID
-RvpInstructionExecuteOpcodeNMSub(
-	_Inout_ RV_PROCESSOR* Vp,
-	_In_    RV_UINT32     Instruction
-	)
-{
-	RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-	return;
-}
-
-static
-VOID
-RvpInstructionExecuteOpcodeNMAdd(
-	_Inout_ RV_PROCESSOR* Vp,
-	_In_    RV_UINT32     Instruction
-	)
-{
-	RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-	return;
-}
+typedef union _RV_FLOAT64_RAW {
+	RV_DOUBLE F64;
+	RV_UINT64 U64;
+} RV_FLOAT64_RAW;
 
 //
 // Not very performant when called for every FP operation,
@@ -2468,9 +2462,12 @@ RvpFpuHostSetRoundingMode(
 #endif
 }
 
+//
+// Single-precision floating-point SQRT approximation.
+//
 static
 RV_FLOAT
-RvpFpuHostSqrtF32(
+RvpFpuSqrtF32(
 	_Inout_ RV_PROCESSOR* Vp,
 	_In_    RV_FLOAT      Value
 	)
@@ -2486,6 +2483,647 @@ RvpFpuHostSqrtF32(
 #endif
 }
 
+//
+// The canonical NaN has a positive sign and all significand bits clear
+// except the MSB, a.k.a. the quiet bit. For single-precision floating-point,
+// this corresponds to the pattern 0x7fc00000.
+//
+RV_FORCEINLINE
+static
+RV_FLOAT
+RvpFpuCanonicalNanF32(
+	VOID
+	)
+{
+	return ( RV_FLOAT32_RAW ){ .U32 = 0x7fc00000ul }.F32;
+}
+
+//
+// Check if the given single-precision floating-point value is any kind of NaN value.
+//
+RV_FORCEINLINE
+static
+RV_BOOLEAN
+RvpFpuIsNanF32(
+	_In_ RV_FLOAT Value
+	)
+{
+#if defined(RV_OPT_BUILD_IEEE_754)
+	RV_FLOAT32_RAW RawValue;
+	RV_UINT32      RawExponent;
+	RV_UINT32      RawFraction;
+
+	//
+	// IEEE-754 single-precision floating-point values are encoded in binary
+	// as 1 sign bit, 8 exponent bits, and 23 fraction bits, ordered respectively.
+	//
+	RawValue = ( RV_FLOAT32_RAW ){ .F32 = Value };
+	RawExponent = ( ( RawValue.U32 >> 23ul ) & ( ( 1ul << 8 ) - 1 ) );
+	RawFraction = ( RawValue.U32 & ( ( 1ul << 23 ) - 1 ) );
+
+	//
+	// NaNs have all exponent bits set to 1, but with a fraction of anything other than all bits set to 0.
+	//
+	return ( ( RawExponent == ( ( 1ul << 8 ) - 1 ) ) && ( RawFraction != 0 ) );
+#elif defined(RV_OPT_BUILD_LIBC)
+	return isnan( Value );
+#else
+	//
+	// Warning, may cause exception if value is a signalling NaN.
+	//
+	return ( Value != Value );
+#endif
+}
+
+//
+// Check if the given double-precision floating-point value is a signalling NaN value.
+//
+RV_FORCEINLINE
+static
+RV_BOOLEAN
+RvpFpuIsSignallingNanF32(
+	_In_ RV_FLOAT Value
+	)
+{
+#if defined(RV_OPT_BUILD_IEEE_754)
+	RV_FLOAT32_RAW RawValue;
+	RV_UINT32      RawExponent;
+	RV_UINT32      RawFraction;
+
+	//
+	// IEEE-754 single-precision floating-point values are encoded in binary
+	// as 1 sign bit, 8 exponent bits, and 23 fraction bits, ordered respectively.
+	//
+	RawValue    = ( RV_FLOAT32_RAW ){ .F32 = Value };
+	RawExponent = ( ( RawValue.U32 >> 23ul ) & ( ( 1ul << 8 ) - 1 ) );
+	RawFraction = ( RawValue.U32 & ( ( 1ul << 23 ) - 1 ) );
+
+	//
+	// NaNs have all exponent bits set to 1, but with a fraction of anything other than all bits set to 0.
+	// On the majority of modern processors, the first free bit of the fraction is used as the quiet bit, if this bit is set,
+	// then the NaN is quiet/non-signaling. Note: a very small handful of ancient processors used unset to mean quiet.
+	//
+	if( ( RawExponent == ( ( 1ul << 8 ) - 1 ) ) && ( RawFraction != 0 ) ) {
+		return ( ( RawFraction & ( 1ul << 22 ) ) == 0 );
+	}
+#else
+	#error "Unsupported."
+#endif
+}
+
+//
+// If the input value is any kind of NaN, this function returns the canonical NaN value.
+// If input value is not NaN, the input value is returned.
+//
+RV_FORCEINLINE
+static
+RV_FLOATR
+RvpFpuCanonicalizeNan(
+	_In_ RV_FLOATR Value
+	)
+{
+#if defined(RV_OPT_RV64I)
+	// TODO!
+	// if( RvpFpuIsNanF64( Value ) ) {
+	// 	return RvpFpuCanonicalNanF64();
+	//}
+	if( RvpFpuIsNanF32( ( RV_FLOAT )Value ) ) {
+		return RvpFpuCanonicalNanF32();
+	}
+#elif defined(RV_OPT_RV32I)
+	if( RvpFpuIsNanF32( Value ) ) {
+		return RvpFpuCanonicalNanF32();
+	}
+#else
+	#error "Unsupported."
+#endif
+
+	return Value;
+}
+
+//
+// Check if the sign of a single-precision floating-point value is set.
+//
+RV_FORCEINLINE
+static
+RV_BOOLEAN
+RvpFpuIsSignSetF32(
+	_In_ RV_FLOAT Value
+	)
+{
+#if defined(RV_OPT_BUILD_IEEE_754)
+	return ( ( ( ( RV_FLOAT32_RAW ){ .F32 = Value } ).U32 & ( 1ull << 31 ) ) != 0 );
+#elif defined(RV_OPT_BUILD_LIBC)
+	return ( signbit( Value ) != 0 );
+#else
+	#error "Unsupported."
+#endif
+}
+
+//
+// Copy the sign of a single-precision floating-point value.
+//
+RV_FORCEINLINE
+static
+RV_FLOAT
+RvpFpuCopySignF32(
+	_In_ RV_FLOAT Value,
+	_In_ RV_FLOAT Sign
+	)
+{
+#if defined(RV_OPT_BUILD_IEEE_754)
+	RV_FLOAT32_RAW RawValue;
+	RV_FLOAT32_RAW RawSign;
+
+	//
+	// Get raw U32 representation of IEEE-754 input values.
+	//
+	RawValue = ( RV_FLOAT32_RAW ){ .F32 = Value };
+	RawSign  = ( RV_FLOAT32_RAW ){ .F32 = Sign };
+
+	//
+	// Strip the original sign-bit of the destination input,
+	// then copy the sign-bit of the source input.
+	//
+	RawValue.U32 &= ~( 1ull << 31 );
+	RawValue.U32 |= ( RawSign.U32 & ( 1ull << 31 ) );
+	return RawValue.F32;
+#elif defined(RV_OPT_BUILD_LIBC)
+	return copysignf( Value, Sign );
+#else
+	#error "Unsupported."
+#endif
+}
+
+//
+// Floating-point minimum-number and maximum-number instructions FMIN.S and FMAX.S write,
+// respectively, the smaller or larger of rs1 and rs2 to rd. For the purposes of these instructions only,
+// the value -0.0 is considered to be less than the value +0.0. If both inputs are NaNs, the result is
+// the canonical NaN. If only one operand is a NaN, the result is the non-NaN operand. Signaling
+// NaN inputs set the invalid operation exception flag, even when the result is not NaN.
+//
+
+static
+RV_FLOAT
+RvpFpuMinS(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_FLOAT      Lhs,
+	_In_    RV_FLOAT      Rhs
+	)
+{
+	//
+	// If both inputs are NaNs, the result is the canonical NaN. 
+	//
+	if( RvpFpuIsNanF32( Lhs ) && RvpFpuIsNanF32( Rhs ) ) {
+		if( RvpFpuIsSignallingNanF32( Lhs ) || RvpFpuIsSignallingNanF32( Rhs ) ) {
+			Vp->CsrFcsr |= RV_FCSR_NV_FLAG;
+		}
+		return RvpFpuCanonicalNanF32();
+	}
+
+	//
+	// If only one operand is a NaN, the result is the non-NaN operand.
+	// Signaling NaN inputs set the invalid operation exception flag, even when the result is not NaN.
+	//
+	if( RvpFpuIsNanF32( Lhs ) ) {
+		Vp->CsrFcsr |= ( RvpFpuIsSignallingNanF32( Lhs ) ? RV_FCSR_NV_FLAG : 0 );
+		return Rhs;
+	} else if( RvpFpuIsNanF32( Rhs ) ) {
+		Vp->CsrFcsr |= ( RvpFpuIsSignallingNanF32( Rhs ) ? RV_FCSR_NV_FLAG : 0 );
+		return Lhs;
+	}
+
+	return RV_MIN( Lhs, Rhs );
+}
+
+static
+RV_FLOAT
+RvpFpuMaxS(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_FLOAT      Lhs,
+	_In_    RV_FLOAT      Rhs
+	)
+{
+	//
+	// If both inputs are NaNs, the result is the canonical NaN. 
+	//
+	if( RvpFpuIsNanF32( Lhs ) && RvpFpuIsNanF32( Rhs ) ) {
+		Vp->CsrFcsr |= ( ( RvpFpuIsSignallingNanF32( Lhs ) || RvpFpuIsSignallingNanF32( Rhs ) )
+						 ? RV_FCSR_NV_FLAG : 0 );
+		return RvpFpuCanonicalNanF32();
+	}
+
+	//
+	// If only one operand is a NaN, the result is the non-NaN operand.
+	// Signaling NaN inputs set the invalid operation exception flag, even when the result is not NaN.
+	//
+	if( RvpFpuIsNanF32( Lhs ) ) {
+		Vp->CsrFcsr |= ( RvpFpuIsSignallingNanF32( Lhs ) ? RV_FCSR_NV_FLAG : 0 );
+		return Rhs;
+	} else if( RvpFpuIsNanF32( Rhs ) ) {
+		Vp->CsrFcsr |= ( RvpFpuIsSignallingNanF32( Rhs ) ? RV_FCSR_NV_FLAG : 0 );
+		return Lhs;
+	}
+
+	return RV_MAX( Lhs, Rhs );
+}
+
+RV_FORCEINLINE
+static
+RV_FLOATR
+RvpFpuApplyRounding(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_FLOATR     Value
+	)
+{
+	//
+	// TODO!
+	//
+	return Value;
+}
+
+RV_FORCEINLINE
+static
+RV_FLOATR
+RvpFpuNormalizeHostResultF32(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_FLOAT      Input
+	)
+{
+	RV_FLOATR Output;
+
+	//
+	// Convert F32 to register-sized float.
+	//
+	Output = ( RV_FLOATR )Input;
+
+	//
+	// Canonicalize NaN values.
+	//
+	Output = RvpFpuCanonicalizeNan( Input );
+
+	//
+	// Apply rounding.
+	//
+	Output = RvpFpuApplyRounding( Vp, Input );
+
+	return Output;
+}
+
+//
+// Note that exactly one bit in rd will be set.
+//  0: rs1 is -inf.
+//  1: rs1 is a negative normal number.
+//  2: rs1 is a negative subnormal number.
+//  3: rs1 is -0.
+//  4: rs1 is +0.
+//  5: rs1 is a positive subnormal number.
+//  6: rs1 is a positive normal number.
+//  7: rs1 is +inf.
+//  8: rs1 is a signaling NaN.
+//  9: rs1 is a quiet NaN.
+//
+static
+RV_UINTR
+RvpFpuClassifyF32(
+	_In_ RV_FLOAT Value
+	)
+{
+#if defined(RV_OPT_BUILD_IEEE_754)
+	RV_FLOAT32_RAW RawValue;
+	RV_UINT32      RawExponent;
+	RV_UINT32      RawSign;
+	RV_UINT32      RawFraction;
+
+	//
+	// IEEE-754 single-precision floating-point values are encoded in binary
+	// as 1 sign bit, 8 exponent bits, and 23 fraction bits, ordered respectively.
+	//
+	RawValue    = ( RV_FLOAT32_RAW ){ .F32 = Value };
+	RawSign     = ( ( RawValue.U32 >> 31ul ) & 1 );
+	RawExponent = ( ( RawValue.U32 >> 23ul ) & ( ( 1ul << 8 ) - 1 ) );
+	RawFraction = ( RawValue.U32 & ( ( 1ul << 23 ) - 1 ) );
+
+	//
+	// Check for signalling NaN and quiet NaN.
+	//
+	if( RvpFpuIsSignallingNanF32( Value ) ) {
+		return RV_FCLASS_RD_SIGNALING_NAN;
+	} else if( RvpFpuIsNanF32( Value ) ) {
+		return RV_FCLASS_RD_QUIET_NAN;
+	}
+
+	//
+	// A number is denormalized if the exponent contains all 0s and the mantissa/fraction does not contain all 0s.
+	// Zero is encoded as having an exponent of 0 and a fraction of 0.
+	//
+	if( RawExponent == 0 ) {
+		if( RawFraction != 0 ) {
+			return ( RawSign ? RV_FCLASS_RD_NEGATIVE_SUBNORMAL : RV_FCLASS_RD_POSITIVE_SUBNORMAL );
+		}
+		return ( RawSign ? RV_FCLASS_RD_NEGATIVE_ZERO : RV_FCLASS_RD_POSITIVE_ZERO );
+	}
+
+	//
+	// Infinity is encoded as having all exponent bits set to 1, and all fraction bits set to 0,
+	// whereas NaNs have all exponent bits set to 1, but with a fraction of anything other than all bits set to 0.
+	// On the majority of modern processors, the first bit of the fraction is used as the quiet bit, if this bit is set,
+	// then the NaN is quiet/non-signaling. Note: a very small handful of ancient processors used unset to mean quiet.
+	//
+	if( RawExponent == ( ( 1ul << 8 ) - 1 ) ) {
+		if( RawFraction == 0 ) {
+			return ( RawSign ? RV_FCLASS_RD_NEGATIVE_INF : RV_FCLASS_RD_POSITIVE_INF );
+		} else {
+			return ( ( RawExponent >> 22ul ) ? RV_FCLASS_RD_QUIET_NAN : RV_FCLASS_RD_SIGNALING_NAN );
+		}
+	}
+
+	//
+	// If none of the above checks of have passed, this must be a normal number.
+	//
+	return ( RawSign ? RV_FCLASS_RD_NEGATIVE_NORMAL : RV_FCLASS_RD_POSITIVE_NORMAL );
+#elif defined(RV_OPT_BUILD_LIBC)
+	switch( fpclassify( Value ) ) {
+	case FP_NAN:
+		return ( RvpFpuIsSignallingNanF32( Value ) ? RV_FCLASS_RD_SIGNALING_NAN : RV_FCLASS_RD_QUIET_NAN );
+	case FP_INFINITE:
+		return ( RvpFpuIsSignSetF32( Value ) ? RV_FCLASS_RD_NEGATIVE_INF : RV_FCLASS_RD_POSITIVE_INF );
+	case FP_ZERO:
+		return ( RvpFpuIsSignSetF32( Value ) ? RV_FCLASS_RD_NEGATIVE_ZERO : RV_FCLASS_RD_POSITIVE_ZERO );
+	case FP_SUBNORMAL:
+		return ( RvpFpuIsSignSetF32( Value ) ? RV_FCLASS_RD_NEGATIVE_SUBNORMAL : RV_FCLASS_RD_POSITIVE_SUBNORMAL );
+	case FP_NORMAL:
+		return ( RvpFpuIsSignSetF32( Value ) ? RV_FCLASS_RD_NEGATIVE_NORMAL : RV_FCLASS_RD_POSITIVE_NORMAL );
+	}
+	return ( RvpFpuIsSignSetF32( Value ) ? RV_FCLASS_RD_NEGATIVE_NORMAL : RV_FCLASS_RD_POSITIVE_NORMAL );
+#else
+	#error "Unsupported."
+#endif
+}
+
+//
+// RV32F FMA function implementations.
+// Floating-point fused multiply-add instructions require a new standard instruction format. R4-type
+// instructions specify three source registers (rs1, rs2, and rs3) and a destination register (rd). This
+// format is only used by the floating-point fused multiply-add instructions.
+// The R4-type format is the same as the R-type format, but funct5 becomes rs3.
+// Note:
+// The FNMSUB and FNMADD instructions are counterintuitively named,
+// owing to the naming of the corresponding instructions in MIPS-IV.
+//
+
+static
+VOID
+RvpInstructionExecuteOpcodeMAdd(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT32     Instruction
+	)
+{
+	RV_UINT32 Opcode;
+	RV_UINT32 Rm;
+	RV_UINT32 Rd;
+	RV_UINT32 Rs1;
+	RV_UINT32 Rs2;
+	RV_UINT32 Funct7;
+	RV_UINT32 Fmt;
+	RV_UINT32 Rs3;
+
+	//
+	// Decode R4-type fields.
+	//
+	Opcode = ( ( Instruction >> RV_INST_R_OPCODE_SHIFT ) & RV_INST_R_OPCODE_MASK );
+	Rm     = ( ( Instruction >> RV_INST_R_FUNCT3_SHIFT ) & RV_INST_R_FUNCT3_MASK );
+	Rd     = ( ( Instruction >> RV_INST_R_RD_SHIFT ) & RV_INST_R_RD_MASK );
+	Rs1    = ( ( Instruction >> RV_INST_R_RS1_SHIFT ) & RV_INST_R_RS1_MASK );
+	Rs2    = ( ( Instruction >> RV_INST_R_RS2_SHIFT ) & RV_INST_R_RS2_MASK );
+	Funct7 = ( ( Instruction >> RV_INST_R_FUNCT7_SHIFT ) & RV_INST_R_FUNCT7_MASK );
+
+	//
+	// Floating point instructions split funct7 into funct5/rs3 and fmt.
+	// The upper 5 bits being funct5/rs3, and the lower 2 bits being fmt.
+	// fmt is a 2-bit field indicating operation size. Always 0b00 for single-precision.
+	//
+	Fmt = ( Funct7 & ( ( 1ul << 2 ) - 1 ) );
+	Rs3 = ( ( Funct7 >> 2ul ) & ( ( 1ul << 5 ) - 1 ) );
+
+	//
+	// Only single-precision (RV32F) is currently supported.
+	//
+	if( Fmt != RV_FP_FMT_S ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// Validate register indices.
+	//
+	if( Rd >= RV_COUNTOF( Vp->Fr ) || Rs1 >= RV_COUNTOF( Vp->Fr )
+		|| Rs2 >= RV_COUNTOF( Vp->Fr ) || Rs3 >= RV_COUNTOF( Vp->Fr ) )
+	{
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// FMADD.S multiplies the values in rs1 and rs2, adds the value in rs3
+	// and writes the final result to rd. FMADD.S computes (rs1*rs2)+rs3.
+	// TODO: Explicitly cast operands to single-precision RV_FLOAT?
+	//
+	Vp->Fr[ Rd ] = ( RV_FLOATR )( RV_FLOAT )( Vp->Fr[ Rs3 ] + ( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) );
+	Vp->Pc += 4;
+}
+
+static
+VOID
+RvpInstructionExecuteOpcodeMSub(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT32     Instruction
+	)
+{
+	RV_UINT32 Opcode;
+	RV_UINT32 Rm;
+	RV_UINT32 Rd;
+	RV_UINT32 Rs1;
+	RV_UINT32 Rs2;
+	RV_UINT32 Funct7;
+	RV_UINT32 Fmt;
+	RV_UINT32 Rs3;
+
+	//
+	// Decode R4-type fields.
+	//
+	Opcode = ( ( Instruction >> RV_INST_R_OPCODE_SHIFT ) & RV_INST_R_OPCODE_MASK );
+	Rm     = ( ( Instruction >> RV_INST_R_FUNCT3_SHIFT ) & RV_INST_R_FUNCT3_MASK );
+	Rd     = ( ( Instruction >> RV_INST_R_RD_SHIFT ) & RV_INST_R_RD_MASK );
+	Rs1    = ( ( Instruction >> RV_INST_R_RS1_SHIFT ) & RV_INST_R_RS1_MASK );
+	Rs2    = ( ( Instruction >> RV_INST_R_RS2_SHIFT ) & RV_INST_R_RS2_MASK );
+	Funct7 = ( ( Instruction >> RV_INST_R_FUNCT7_SHIFT ) & RV_INST_R_FUNCT7_MASK );
+
+	//
+	// Floating point instructions split funct7 into funct5/rs3 and fmt.
+	// The upper 5 bits being funct5/rs3, and the lower 2 bits being fmt.
+	// fmt is a 2-bit field indicating operation size. Always 0b00 for single-precision.
+	//
+	Fmt = ( Funct7 & ( ( 1ul << 2 ) - 1 ) );
+	Rs3 = ( ( Funct7 >> 2ul ) & ( ( 1ul << 5 ) - 1 ) );
+
+	//
+	// Only single-precision (RV32F) is currently supported.
+	//
+	if( Fmt != RV_FP_FMT_S ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// Validate register indices.
+	//
+	if( Rd >= RV_COUNTOF( Vp->Fr ) || Rs1 >= RV_COUNTOF( Vp->Fr )
+		|| Rs2 >= RV_COUNTOF( Vp->Fr ) || Rs3 >= RV_COUNTOF( Vp->Fr ) )
+	{
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// FMSUB.S multiplies the values in rs1 and rs2, subtracts the value in rs3,
+	// and writes the final result to rd. FMSUB.S computes (rs1*rs2)-rs3.
+	// TODO: Explicitly cast operands to single-precision RV_FLOAT?
+	//
+	Vp->Fr[ Rd ] = ( RV_FLOATR )( RV_FLOAT )( ( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) - Vp->Fr[ Rs3 ] );
+	Vp->Pc += 4;
+}
+
+static
+VOID
+RvpInstructionExecuteOpcodeNMSub(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT32     Instruction
+	)
+{
+	RV_UINT32 Opcode;
+	RV_UINT32 Rm;
+	RV_UINT32 Rd;
+	RV_UINT32 Rs1;
+	RV_UINT32 Rs2;
+	RV_UINT32 Funct7;
+	RV_UINT32 Fmt;
+	RV_UINT32 Rs3;
+
+	//
+	// Decode R4-type fields.
+	//
+	Opcode = ( ( Instruction >> RV_INST_R_OPCODE_SHIFT ) & RV_INST_R_OPCODE_MASK );
+	Rm     = ( ( Instruction >> RV_INST_R_FUNCT3_SHIFT ) & RV_INST_R_FUNCT3_MASK );
+	Rd     = ( ( Instruction >> RV_INST_R_RD_SHIFT ) & RV_INST_R_RD_MASK );
+	Rs1    = ( ( Instruction >> RV_INST_R_RS1_SHIFT ) & RV_INST_R_RS1_MASK );
+	Rs2    = ( ( Instruction >> RV_INST_R_RS2_SHIFT ) & RV_INST_R_RS2_MASK );
+	Funct7 = ( ( Instruction >> RV_INST_R_FUNCT7_SHIFT ) & RV_INST_R_FUNCT7_MASK );
+
+	//
+	// Floating point instructions split funct7 into funct5/rs3 and fmt.
+	// The upper 5 bits being funct5/rs3, and the lower 2 bits being fmt.
+	// fmt is a 2-bit field indicating operation size. Always 0b00 for single-precision.
+	//
+	Fmt = ( Funct7 & ( ( 1ul << 2 ) - 1 ) );
+	Rs3 = ( ( Funct7 >> 2ul ) & ( ( 1ul << 5 ) - 1 ) );
+
+	//
+	// Only single-precision (RV32F) is currently supported.
+	//
+	if( Fmt != RV_FP_FMT_S ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// Validate register indices.
+	//
+	if( Rd >= RV_COUNTOF( Vp->Fr ) || Rs1 >= RV_COUNTOF( Vp->Fr )
+		|| Rs2 >= RV_COUNTOF( Vp->Fr ) || Rs3 >= RV_COUNTOF( Vp->Fr ) )
+	{
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// FNMSUB.S multiplies the values in rs1 and rs2, negates the product,
+	// adds the value in rs3, and writes the final result to rd.
+	// FNMSUB.S computes -(rs1(rs2)+rs3.
+	// TODO: Explicitly cast operands to single-precision RV_FLOAT?
+	//
+	Vp->Fr[ Rd ] = ( RV_FLOATR )( RV_FLOAT )( -( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) + Vp->Fr[ Rs3 ] );
+	Vp->Pc += 4;
+}
+
+static
+VOID
+RvpInstructionExecuteOpcodeNMAdd(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT32     Instruction
+	)
+{
+	RV_UINT32 Opcode;
+	RV_UINT32 Rm;
+	RV_UINT32 Rd;
+	RV_UINT32 Rs1;
+	RV_UINT32 Rs2;
+	RV_UINT32 Funct7;
+	RV_UINT32 Fmt;
+	RV_UINT32 Rs3;
+
+	//
+	// Decode R4-type fields.
+	//
+	Opcode = ( ( Instruction >> RV_INST_R_OPCODE_SHIFT ) & RV_INST_R_OPCODE_MASK );
+	Rm     = ( ( Instruction >> RV_INST_R_FUNCT3_SHIFT ) & RV_INST_R_FUNCT3_MASK );
+	Rd     = ( ( Instruction >> RV_INST_R_RD_SHIFT ) & RV_INST_R_RD_MASK );
+	Rs1    = ( ( Instruction >> RV_INST_R_RS1_SHIFT ) & RV_INST_R_RS1_MASK );
+	Rs2    = ( ( Instruction >> RV_INST_R_RS2_SHIFT ) & RV_INST_R_RS2_MASK );
+	Funct7 = ( ( Instruction >> RV_INST_R_FUNCT7_SHIFT ) & RV_INST_R_FUNCT7_MASK );
+
+	//
+	// Floating point instructions split funct7 into funct5/rs3 and fmt.
+	// The upper 5 bits being funct5/rs3, and the lower 2 bits being fmt.
+	// fmt is a 2-bit field indicating operation size. Always 0b00 for single-precision.
+	//
+	Fmt = ( Funct7 & ( ( 1ul << 2 ) - 1 ) );
+	Rs3 = ( ( Funct7 >> 2ul ) & ( ( 1ul << 5 ) - 1 ) );
+
+	//
+	// Only single-precision (RV32F) is currently supported.
+	//
+	if( Fmt != RV_FP_FMT_S ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// Validate register indices.
+	//
+	if( Rd >= RV_COUNTOF( Vp->Fr ) || Rs1 >= RV_COUNTOF( Vp->Fr )
+		|| Rs2 >= RV_COUNTOF( Vp->Fr ) || Rs3 >= RV_COUNTOF( Vp->Fr ) )
+	{
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+		return;
+	}
+
+	//
+	// FNMADD.S multiplies the values in rs1 and rs2, negates the product,
+	// subtracts the value in rs3, and writes the final result to rd
+	// FNMADD.S computes -(rs1*rs2)-rs3.
+	// TODO: Explicitly cast operands to single-precision RV_FLOAT?
+	//
+	Vp->Fr[ Rd ] = ( RV_FLOATR )( RV_FLOAT )( -( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) - Vp->Fr[ Rs3 ] );
+	Vp->Pc += 4;
+}
+
+//
+// RV32F OP-FP/LOAD/STORE implementations.
+// TODO: Improve classification for FP instructions, and clean
+// up/simplify dispatch, this function has grown a bit too messy.
+//
+
 static
 VOID
 RvpInstructionExecuteOpcodeOpFp(
@@ -2493,25 +3131,30 @@ RvpInstructionExecuteOpcodeOpFp(
 	_In_    RV_UINT32     Instruction
 	)
 {
-	RV_UINT32 Opcode;
-	RV_UINT32 RdFr;
-	RV_UINT32 Rs1Fr;
-	RV_UINT32 Rs2Fr;
-	RV_UINT32 Funct3;
-	RV_UINT32 Rm;
-	RV_UINT32 Funct7;
-	RV_UINT32 Class;
+	RV_UINT32  Opcode;
+	RV_UINT32  Rd;
+	RV_UINT32  Rs1;
+	RV_UINT32  Rs2;
+	RV_UINT32  Funct3;
+	RV_UINT32  Rm;
+	RV_UINT32  Funct7;
+	RV_UINT32  Class;
+	RV_BOOLEAN ShouldSignalNV;
 
 	//
 	// Decode R-type fields.
 	//
 	Opcode = ( ( Instruction >> RV_INST_R_OPCODE_SHIFT ) & RV_INST_R_OPCODE_MASK );
-	RdFr   = ( ( Instruction >> RV_INST_R_RD_SHIFT ) & RV_INST_R_RD_MASK );
-	Rs1Fr  = ( ( Instruction >> RV_INST_R_RS1_SHIFT ) & RV_INST_R_RS1_MASK );
-	Rs2Fr  = ( ( Instruction >> RV_INST_R_RS2_SHIFT ) & RV_INST_R_RS2_MASK );
+	Rd     = ( ( Instruction >> RV_INST_R_RD_SHIFT ) & RV_INST_R_RD_MASK );
+	Rs1    = ( ( Instruction >> RV_INST_R_RS1_SHIFT ) & RV_INST_R_RS1_MASK );
+	Rs2    = ( ( Instruction >> RV_INST_R_RS2_SHIFT ) & RV_INST_R_RS2_MASK );
 	Funct3 = ( ( Instruction >> RV_INST_R_FUNCT3_SHIFT ) & RV_INST_R_FUNCT3_MASK );
-	Rm     = Funct3;
 	Funct7 = ( ( Instruction >> RV_INST_R_FUNCT7_SHIFT ) & RV_INST_R_FUNCT7_MASK );
+
+	//
+	// Some instructions use funct3 as the rounding-mode field.
+	//
+	Rm = Funct3;
 
 	//
 	// Classify Floating-point instruction
@@ -2522,8 +3165,12 @@ RvpInstructionExecuteOpcodeOpFp(
 	// Validate register indices.
 	// Note: Not all instructions use rs2, but use the rs2 field for their own purpose
 	// in this case, the value of rs2 is always <= 1, so this check will still pass for them.
+	// Some instructions also use the registers fields for X registers, not just F registers,
+	// so for now, we just ensure that there are the same amount of both register types,
+	// so that the register index check holds valid for both.
 	//
-	if( RdFr >= RV_COUNTOF( Vp->Fr ) || Rs1Fr >= RV_COUNTOF( Vp->Fr ) || Rs2Fr >= RV_COUNTOF( Vp->Fr ) ) {
+	_Static_assert( RV_COUNTOF( Vp->Xr ) == RV_COUNTOF( Vp->Fr ), "Register count mismatch." );
+	if( Rd >= RV_COUNTOF( Vp->Fr ) || Rs1 >= RV_COUNTOF( Vp->Fr ) || Rs2 >= RV_COUNTOF( Vp->Fr ) ) {
 		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
 		return;
 	}
@@ -2553,44 +3200,230 @@ RvpInstructionExecuteOpcodeOpFp(
 	//
 	switch( Class ) {
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FADD_S ):
-		Vp->Fr[ RdFr ] = ( RV_FLOATR )( ( RV_FLOAT )Vp->Fr[ Rs1Fr ] + ( RV_FLOAT )Vp->Fr[ Rs2Fr ] );
+		Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, ( ( RV_FLOAT )Vp->Fr[ Rs1 ] + ( RV_FLOAT )Vp->Fr[ Rs2 ] ) );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FSUB_S ):
-		Vp->Fr[ RdFr ] = ( RV_FLOATR )( ( RV_FLOAT )Vp->Fr[ Rs1Fr ] - ( RV_FLOAT )Vp->Fr[ Rs2Fr ] );
+		Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, ( ( RV_FLOAT )Vp->Fr[ Rs1 ] - ( RV_FLOAT )Vp->Fr[ Rs2 ] ) );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FMUL_S ):
-		Vp->Fr[ RdFr ] = ( RV_FLOATR )( ( RV_FLOAT )Vp->Fr[ Rs1Fr ] * ( RV_FLOAT )Vp->Fr[ Rs2Fr ] );
+		Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, ( ( RV_FLOAT )Vp->Fr[ Rs1 ] * ( RV_FLOAT )Vp->Fr[ Rs2 ] ) );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FDIV_S ):
-		Vp->Fr[ RdFr ] = ( RV_FLOATR )( ( RV_FLOAT )Vp->Fr[ Rs1Fr ] / ( RV_FLOAT )Vp->Fr[ Rs2Fr ] );
+		Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, ( ( RV_FLOAT )Vp->Fr[ Rs1 ] / ( RV_FLOAT )Vp->Fr[ Rs2 ] ) );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FSQRT_S ):
-		Vp->Fr[ RdFr ] = ( RV_FLOATR )RvpFpuHostSqrtF32( Vp, ( RV_FLOAT )Vp->Fr[ Rs1Fr ] );
+		if( Rs2 != RV_OP_FP_RS2_FSQRT_S ) {
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+		Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, RvpFpuSqrtF32( Vp, ( RV_FLOAT )Vp->Fr[ Rs1 ] ) );
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FMIN_FMAX_S ):
 		//
-		// Floating-point minimum-number and maximum-number instructions FMIN.S and FMAX.S write,
+		// Floating-point minimum-number and maximum-number instruction FMIN.S and FMAX.S write,
 		// respectively, the smaller or larger of rs1 and rs2 to rd. For the purposes of these instructions only,
 		// the value -0.0 is considered to be less than the value +0.0. If both inputs are NaNs, the result is
 		// the canonical NaN. If only one operand is a NaN, the result is the non-NaN operand. Signaling
 		// NaN inputs set the invalid operation exception flag, even when the result is not NaN.
 		// The funct3 field indicates if this is a min or max instruction variant.
 		//
+		if( Funct3 == RV_OP_FP_FUNCT3_FMIN_S ) {
+			Vp->Fr[ Rd ] = ( RV_FLOATR )RvpFpuMinS( Vp, ( RV_FLOAT )Vp->Fr[ Rs1 ], ( RV_FLOAT )Vp->Fr[ Rs2 ] );
+		} else if( Funct3 == RV_OP_FP_FUNCT3_FMAX_S ) {
+			Vp->Fr[ Rd ] = ( RV_FLOATR )RvpFpuMaxS( Vp, ( RV_FLOAT )Vp->Fr[ Rs1 ], ( RV_FLOAT )Vp->Fr[ Rs2 ] );
+		} else {
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FCVT_W_S_WU_S ):
+		//
+		// (S -> W).
+		// FCVT.W.S converts register rs1 to a signed 32-bit integer in integer register rd.
+		// FCVT.WU.S converts to unsigned integer 32-bit integer.
+		// For XLEN> 32, FCVT.W[U].S sign-extends the 32-bit result to the destination register width.
+		// 
+		// TODO:
+		// If the rounded result is not representable in the destination format, it
+		// is clipped to the nearest value and the invalid flag is set. Table 11.4 gives the range of valid inputs
+		// for FCVT.int.S and the behavior for invalid inputs.
+		// All floating-point to integer and integer to floating-point conversion instructions round according
+		// to the rm field.
+		//
+		if( Rs2 == RV_OP_FP_RS2_FCVT_W_S ) {
+			Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )RvpFpuApplyRounding( Vp, Vp->Fr[ Rs1 ] );
+		} else if( Rs2 == RV_OP_FP_RS2_FCVT_WU_S ) {
+			Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )( RV_UINT32 )RvpFpuApplyRounding( Vp, Vp->Fr[ Rs1 ] );
+		} else {
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FCVT_S_W_S_WU ):
+		//
+		// (W -> S).
+		// FCVT.S.W or FCVT.S.L converts a 32-bit or 64-bit signed integer, respectively,
+		// in integer register rs1 into a floating-point number in floating-point register rd.
+		//
+		if( Rs2 == RV_OP_FP_RS2_FCVT_S_W ) {
+			Vp->Fr[ Rd ] = RvpFpuApplyRounding( Vp, ( RV_FLOATR )( RV_INTR )Vp->Xr[ Rs1 ] );
+		} else if( Rs2 == RV_OP_FP_RS2_FCVT_S_WU ) {
+			Vp->Fr[ Rd ] = RvpFpuApplyRounding( Vp, ( RV_FLOATR )Vp->Xr[ Rs1 ] );
+		} else {
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FSGNJ_S ):
+		//
+		// Floating-point to floating-point sign-injection instructions.
+		// FSGNJ.S, FSGNJN.S, and FSGNJX.S produce a result that takes all bits except the sign bit from rs1.
+		// Sign-injection instructions do not set floating-point exception flags, nor do they canonicalize NaNs.
+		//
+		switch( Funct3 ) {
+		case RV_OP_FP_FUNCT3_FSGNJ_S:
+			//
+			// For FSGNJ, the result's sign bit is rs2's sign bit.
+			//
+			Vp->Fr[ Rd ] = ( RV_FLOATR )RvpFpuCopySignF32( Vp->Fr[ Rs1 ], Vp->Fr[ Rs2 ] );
+			break;
+		case RV_OP_FP_FUNCT3_FSGNJN_S:
+			//
+			// For FSGNJN, the result's sign bit is the opposite of rs2's sign bit.
+			//
+			Vp->Fr[ Rd ] = ( RV_FLOATR )RvpFpuCopySignF32(
+				Vp->Fr[ Rs1 ],
+				( RvpFpuIsSignSetF32( Vp->Fr[ Rs2 ] ? 1.f : -1.f ) )
+			);
+			break;
+		case RV_OP_FP_FUNCT3_FSGNJX_S:
+			//
+			// For FSGNJX, the sign bit is the XOR of the sign bits of rs1 and rs2.
+			//
+			Vp->Fr[ Rd ] = ( RV_FLOATR )RvpFpuCopySignF32(
+				Vp->Fr[ Rs1 ],
+				( ( RvpFpuIsSignSetF32( Vp->Fr[ Rs1 ] ) ^ RvpFpuIsSignSetF32( Vp->Fr[ Rs2 ] ) ) ? -1.f : 1.f )
+			);
+			break;
+		default:
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FMV_X_W_FCLASS_S ):
+		if( Funct3 == RV_OP_FP_FUNCT3_FMV_X_W ) {
+			//
+			// Instructions are provided to move bit patterns between the floating-point and integer registers.
+			// FMV.X.W moves the single-precision value in floating-point register rs1 represented in IEEE 754-
+			// 2008 encoding to the lower 32 bits of integer register rd. The bits are not modified in the transfer,
+			// and in particular, the payloads of non-canonical NaNs are preserved. For RV64, the higher 32 bits
+			// of the destination register are filled with copies of the floating-point number's sign bit.
+			//
+			Vp->Xr[ Rd ] = 0;
+#if defined(RV_OPT_RV64I)
+			Vp->Xr[ Rd ] |= ( RvpFpuIsSignSetF32( Vp->Fr[ Rs1 ] ) ? ( 0xFFFFFFFFull << 32ull ) : 0 );
+#endif
+			Vp->Xr[ Rd ] |= ( RV_FLOAT32_RAW ) { .F32 = ( RV_FLOAT )Vp->Fr[ Rs1 ] }.U32;
+		} else if( Funct3 == RV_OP_FP_FUNCT3_FCLASS_S ) {
+			//
+			// The FCLASS.S instruction examines the value in floating-point register rs1 and writes to
+			// integer register rd a 10-bit mask that indicates the class of the floating-point number.
+			// The corresponding bit in rd will be set if the property is true and clear otherwise.
+			// All other bits in rd are cleared. Note that exactly one bit in rd will be set.
+			// FCLASS.S does not set the floating-point exception flags.
+			//
+			Vp->Xr[ Rd ] = RvpFpuClassifyF32( ( RV_FLOAT )Vp->Fr[ Rs1 ] );
+		} else {
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FMV_W_X ):
+		//
+		// FMV.W.X moves the single-precision value encoded in IEEE 754-2008 standard encoding from the
+		// lower 32 bits of integer register rs1 to the floating-point register rd. The bits are not modified in
+		// the transfer, and in particular, the payloads of non-canonical NaNs are preserved.
+		//
+		Vp->Fr[ Rd ] = ( RV_FLOATR )( ( RV_FLOAT32_RAW ){ .U32 = ( RV_UINT32 )Vp->Xr[ Rs1 ] }.F32 );
+		break;
+	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FEQ_S_FLT_S_FLE_S ):
+		//
+		// Floating-point compare instructions (FEQ.S, FLT.S, FLE.S) perform the specified comparison between
+		// floating-point registers (rs1 = rs2, rs1 < rs2, rs1 <= rs2) writing 1 to the integer register rd
+		// if the condition holds, and 0 otherwise.
+		//
+		switch( Funct3 ) {
+		case RV_OP_FP_FUNCT3_FEQ_S:
+			//
+			// FEQ.S performs a quiet comparison: it only sets the invalid operation
+			// exception flag if either input is a signaling NaN.
+			//
+			ShouldSignalNV = (
+				RvpFpuIsSignallingNanF32( ( RV_FLOAT )Vp->Fr[ Rs1 ] )
+				|| RvpFpuIsSignallingNanF32( ( RV_FLOAT )Vp->Fr[ Rs2 ] )
+			);
+			Vp->CsrFcsr |= ( ShouldSignalNV ? RV_FCSR_NV_FLAG : 0 );
 
-		if(  )
+			//
+			// For all three instructions, the result is 0 if either operand is NaN.
+			//
+			if( RvpFpuIsNanF32( ( RV_FLOAT )Vp->Fr[ Rs1 ] ) || RvpFpuIsNanF32( ( RV_FLOAT )Vp->Fr[ Rs2 ] ) ) {
+				Vp->Xr[ Rd ] = 0;
+			} else {
+				Vp->Xr[ Rd ] = ( ( ( RV_FLOAT )Vp->Fr[ Rs1 ] == ( RV_FLOAT )Vp->Fr[ Rs2 ] ) ? 1 : 0 );
+			}
+			break;
+		case RV_OP_FP_FUNCT3_FLT_S:
+			//
+			// FLT.S and FLE.S perform what the IEEE 754-2008 standard refers to as signaling comparisons:
+			// that is, they set the invalid operation exception flag if either input is NaN.
+			//
+			ShouldSignalNV = (
+				RvpFpuIsNanF32( ( RV_FLOAT )Vp->Fr[ Rs1 ] )
+				|| RvpFpuIsNanF32( ( RV_FLOAT )Vp->Fr[ Rs2 ] )
+			);
+			Vp->CsrFcsr |= ( ShouldSignalNV ? RV_FCSR_NV_FLAG : 0 );
 
+			//
+			// For all three instructions, the result is 0 if either operand is NaN.
+			//
+			if( ShouldSignalNV ) {
+				Vp->Xr[ Rd ] = 0;
+			} else {
+				Vp->Xr[ Rd ] = ( ( ( RV_FLOAT )Vp->Fr[ Rs1 ] < ( RV_FLOAT )Vp->Fr[ Rs2 ] ) ? 1 : 0 );
+			}
+			break;
+		case RV_OP_FP_FUNCT3_FLE_S:
+			//
+			// FLT.S and FLE.S perform what the IEEE 754-2008 standard refers to as signaling comparisons:
+			// that is, they set the invalid operation exception flag if either input is NaN.
+			//
+			ShouldSignalNV = (
+				RvpFpuIsNanF32( ( RV_FLOAT )Vp->Fr[ Rs1 ] )
+				|| RvpFpuIsNanF32( ( RV_FLOAT )Vp->Fr[ Rs2 ] )
+			);
+			Vp->CsrFcsr |= ( ShouldSignalNV ? RV_FCSR_NV_FLAG : 0 );
 
+			//
+			// For all three instructions, the result is 0 if either operand is NaN.
+			//
+			if( ShouldSignalNV ) {
+				Vp->Xr[ Rd ] = 0;
+			} else {
+				Vp->Xr[ Rd ] = ( ( ( RV_FLOAT )Vp->Fr[ Rs1 ] <= ( RV_FLOAT )Vp->Fr[ Rs2 ] ) ? 1 : 0 );
+			}
+			break;
+		default:
+			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
+			return;
+		}
 		break;
 	default:
 		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
 		return;
 	}
 
-	//
-	// Implementation unfinished.
-	//
-	RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
-	return;
+	Vp->Pc += 4;
 }
 
 static

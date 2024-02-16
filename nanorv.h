@@ -121,6 +121,11 @@ typedef RV_FLOAT RV_FLOATR;
 #endif
 
 //
+// Inline function.
+//
+#define RV_FORCEINLINE __forceinline
+
+//
 // Max GPR (X register) and FPR (F register) counts.
 //
 #define RVE_MAX_GPR_COUNT (32)
@@ -141,13 +146,13 @@ typedef struct _RV_PROCESSOR {
 	// Floating-point context.
 	//
 #if (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
-	RV_FLOAT  Fr[ RVE_MAX_FPR_COUNT ]; /* Floating-point register values. */
+	RV_FLOATR Fr[ RVE_MAX_FPR_COUNT ]; /* Floating-point register values. */
 	RV_UINT32 HostFpuCsr;
 #endif
 
-	RV_UINTR  CsrFFlags; /* Floating-Point Accrued Exceptions. */
-	RV_UINTR  CsrFrm;    /* Floating-Point Dynamic Rounding Mode. */
-	RV_UINTR  CsrFcsr;   /* Floating-Point Control and Status Register (frm + fflags). */
+	RV_UINTR CsrFFlags; /* Floating-Point Accrued Exceptions. */
+	RV_UINTR CsrFrm;    /* Floating-Point Dynamic Rounding Mode. */
+	RV_UINTR CsrFcsr;   /* Floating-Point Control and Status Register (frm + fflags). */
 
 	//
 	// Memory accessible to the guest processor.
