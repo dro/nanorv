@@ -81,6 +81,22 @@ typedef RV_FLOAT RV_FLOATR;
 #endif
 
 //
+// Raw FLOAT32 union, used to access raw binary encoding of a float.
+//
+typedef union _RV_FLOAT32_RAW {
+	RV_FLOAT  F32;
+	RV_UINT32 U32;
+} RV_FLOAT32_RAW;
+
+//
+// Raw FLOAT64 union, used to access raw binary encoding of a double.
+//
+typedef union _RV_FLOAT64_RAW {
+	RV_DOUBLE F64;
+	RV_UINT64 U64;
+} RV_FLOAT64_RAW;
+
+//
 // Helper defines used by the emulator code.
 //
 
@@ -147,10 +163,8 @@ typedef struct _RV_PROCESSOR {
 	//
 #if (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
 	RV_FLOATR Fr[ RVE_MAX_FPR_COUNT ]; /* Floating-point register values. */
-	RV_UINT32 HostFpuCsr;
+	RV_UINTR  CsrFcsr;                 /* Floating-Point Control and Status Register (frm + fflags). */
 #endif
-
-	RV_UINTR CsrFcsr;   /* Floating-Point Control and Status Register (frm + fflags). */
 
 	//
 	// Memory accessible to the guest processor.

@@ -1783,7 +1783,7 @@ RvpInstructionExecuteOpcodeJAL(
 
 
 //
-// System opcode and zicsr implementation.
+// System opcode and Zicsr implementation.
 //
 
 
@@ -1797,6 +1797,7 @@ RvpCsrHandleWrite(
 	)
 {
 	switch( Csr ) {
+#if (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
 	case RV_CSR_VALUE_FFLAGS:
 		//
 		// FFLAGS is a helper CSR that accesses just the FFLAGS field of the actual FCSR.
@@ -1820,6 +1821,7 @@ RvpCsrHandleWrite(
 		//
 		Vp->CsrFcsr = ( NewValue & ~( RV_FCSR_RESERVED0_MASK << RV_FCSR_RESERVED0_SHIFT ) );
 		break;
+#endif
 	default:
 		return RV_FALSE;
 	}
@@ -1837,6 +1839,7 @@ RvpCsrHandleRead(
 	)
 {
 	switch( Csr ) {
+#if (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
 	case RV_CSR_VALUE_FFLAGS:
 		//
 		// FFLAGS is a helper CSR that accesses just the FFLAGS field of the actual FCSR.
@@ -1858,6 +1861,7 @@ RvpCsrHandleRead(
 		//
 		*pValue = ( Vp->CsrFcsr & ~( RV_FCSR_RESERVED0_MASK << RV_FCSR_RESERVED0_SHIFT ) );
 		break;
+#endif
 	case RV_CSR_VALUE_CYCLE:
 		*pValue = ( RV_UINTR )Vp->CsrCycleCount;
 		break;
@@ -2431,17 +2435,8 @@ RvpInstructionExecuteOpcodeAmo(
 // RV32F implementation, WIP.
 //
 
-#if 0 && (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
-typedef union _RV_FLOAT32_RAW {
-	RV_FLOAT  F32;
-	RV_UINT32 U32
-} RV_FLOAT32_RAW;
-
-typedef union _RV_FLOAT64_RAW {
-	RV_DOUBLE F64;
-	RV_UINT64 U64;
-} RV_FLOAT64_RAW;
-
+#if (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
+#if 0
 //
 // Not very performant when called for every FP operation,
 // should be set once at the beginning of guest execution,
@@ -2475,12 +2470,10 @@ RvpFpuHostSetRoundingMode(
 	default:
 		break;
 	}
-	Vp->HostFpuCsr = HostFpuCsr;
-	_mm_setcsr( HostFpuCsr );
-#else
-	Vp->HostFpuCsr = 0;
+	_mm_setcsr( HostFpuCsr )
 #endif
 }
+#endif
 
 //
 // Single-precision floating-point SQRT approximation.
@@ -2498,6 +2491,18 @@ RvpFpuSqrtF32(
 	return _mm_cvtss_f32( _mm_sqrt_ss( _mm_set_ss( Value ) ) );
 #elif defined(RV_OPT_BUILD_LIBC)
 	return sqrtf( Value );
+#elif defined(RV_OPT_BUILD_IEEE_754)
+	RV_FLOAT32_RAW RawValue;
+
+	//
+	// ASQRT with two newton-raphson iterations from hacker's delight by Henry Warren.
+	// Relative error ranges from 0.f to 0.00000023f.
+	//
+	RawValue     = ( RV_FLOAT32_RAW ){ .F32 = Value };
+	RawValue.U32 = ( ( RawValue.U32 >> 1 ) + 0x1fbb3f80ul );               /* Initial guess. */
+	RawValue.F32 = ( 0.5f * ( RawValue.F32 + ( Value / RawValue.F32 ) ) ); /* First N-R step. */
+	RawValue.F32 = ( 0.5f * ( RawValue.F32 + ( Value / RawValue.F32 ) ) ); /* Second N-R step. */
+	return RawValue.F32;
 #else
 	#error "Unsupported."
 #endif
@@ -2549,19 +2554,19 @@ RvpFpuIsNanF32(
 	return isnan( Value );
 #else
 	//
-	// Warning, may cause exception if value is a signalling NaN.
+	// Warning, may cause exception if value is a signaling NaN.
 	//
 	return ( Value != Value );
 #endif
 }
 
 //
-// Check if the given double-precision floating-point value is a signalling NaN value.
+// Check if the given single-precision floating-point value is a signaling NaN value.
 //
 RV_FORCEINLINE
 static
 RV_BOOLEAN
-RvpFpuIsSignallingNanF32(
+RvpFpuIsSignalingNanF32(
 	_In_ RV_FLOAT Value
 	)
 {
@@ -2586,10 +2591,49 @@ RvpFpuIsSignallingNanF32(
 	if( ( RawExponent == ( ( 1ul << 8 ) - 1 ) ) && ( RawFraction != 0 ) ) {
 		return ( ( RawFraction & ( 1ul << 22 ) ) == 0 );
 	}
+
+	return RV_FALSE;
 #else
 	#error "Unsupported."
 #endif
 }
+
+//
+// Check if the given single-precision floating-point value is an INF value.
+//
+RV_FORCEINLINE
+static
+RV_BOOLEAN
+RvpFpuIsInfinityF32(
+	_In_ RV_FLOAT Value
+	)
+{
+#if defined(RV_OPT_BUILD_IEEE_754)
+	RV_FLOAT32_RAW RawValue;
+	RV_UINT32      RawExponent;
+	RV_UINT32      RawFraction;
+
+	//
+	// IEEE-754 single-precision floating-point values are encoded in binary
+	// as 1 sign bit, 8 exponent bits, and 23 fraction bits, ordered respectively.
+	//
+	RawValue    = ( RV_FLOAT32_RAW ){ .F32 = Value };
+	RawExponent = ( ( RawValue.U32 >> 23ul ) & ( ( 1ul << 8 ) - 1 ) );
+	RawFraction = ( RawValue.U32 & ( ( 1ul << 23 ) - 1 ) );
+
+	//
+	// Infinity is encoded as having all exponent bits set to 1, and all fraction bits set to 0,
+	//
+	if( ( RawExponent == ( ( 1ul << 8 ) - 1 ) ) && ( RawFraction == 0 ) ) {
+		return RV_TRUE;
+	}
+
+	return RV_FALSE;
+#else
+	#error "Unsupported."
+#endif
+}
+
 
 //
 // If the input value is any kind of NaN, this function returns the canonical NaN value.
@@ -2602,15 +2646,13 @@ RvpFpuCanonicalizeNan(
 	_In_ RV_FLOATR Value
 	)
 {
-#if defined(RV_OPT_RV64I)
+#if defined(RV_OPT_RV32D)
 	// TODO!
 	// if( RvpFpuIsNanF64( Value ) ) {
 	// 	return RvpFpuCanonicalNanF64();
 	//}
-	if( RvpFpuIsNanF32( ( RV_FLOAT )Value ) ) {
-		return RvpFpuCanonicalNanF32();
-	}
-#elif defined(RV_OPT_RV32I)
+	#error "Unsupported."
+#elif defined(RV_OPT_RV32F)
 	if( RvpFpuIsNanF32( Value ) ) {
 		return RvpFpuCanonicalNanF32();
 	}
@@ -2695,7 +2737,7 @@ RvpFpuMinS(
 	// If both inputs are NaNs, the result is the canonical NaN. 
 	//
 	if( RvpFpuIsNanF32( Lhs ) && RvpFpuIsNanF32( Rhs ) ) {
-		if( RvpFpuIsSignallingNanF32( Lhs ) || RvpFpuIsSignallingNanF32( Rhs ) ) {
+		if( RvpFpuIsSignalingNanF32( Lhs ) || RvpFpuIsSignalingNanF32( Rhs ) ) {
 			Vp->CsrFcsr |= RV_FCSR_NV_FLAG;
 		}
 		return RvpFpuCanonicalNanF32();
@@ -2706,10 +2748,10 @@ RvpFpuMinS(
 	// Signaling NaN inputs set the invalid operation exception flag, even when the result is not NaN.
 	//
 	if( RvpFpuIsNanF32( Lhs ) ) {
-		Vp->CsrFcsr |= ( RvpFpuIsSignallingNanF32( Lhs ) ? RV_FCSR_NV_FLAG : 0 );
+		Vp->CsrFcsr |= ( RvpFpuIsSignalingNanF32( Lhs ) ? RV_FCSR_NV_FLAG : 0 );
 		return Rhs;
 	} else if( RvpFpuIsNanF32( Rhs ) ) {
-		Vp->CsrFcsr |= ( RvpFpuIsSignallingNanF32( Rhs ) ? RV_FCSR_NV_FLAG : 0 );
+		Vp->CsrFcsr |= ( RvpFpuIsSignalingNanF32( Rhs ) ? RV_FCSR_NV_FLAG : 0 );
 		return Lhs;
 	}
 
@@ -2728,7 +2770,7 @@ RvpFpuMaxS(
 	// If both inputs are NaNs, the result is the canonical NaN. 
 	//
 	if( RvpFpuIsNanF32( Lhs ) && RvpFpuIsNanF32( Rhs ) ) {
-		Vp->CsrFcsr |= ( ( RvpFpuIsSignallingNanF32( Lhs ) || RvpFpuIsSignallingNanF32( Rhs ) )
+		Vp->CsrFcsr |= ( ( RvpFpuIsSignalingNanF32( Lhs ) || RvpFpuIsSignalingNanF32( Rhs ) )
 						 ? RV_FCSR_NV_FLAG : 0 );
 		return RvpFpuCanonicalNanF32();
 	}
@@ -2738,10 +2780,10 @@ RvpFpuMaxS(
 	// Signaling NaN inputs set the invalid operation exception flag, even when the result is not NaN.
 	//
 	if( RvpFpuIsNanF32( Lhs ) ) {
-		Vp->CsrFcsr |= ( RvpFpuIsSignallingNanF32( Lhs ) ? RV_FCSR_NV_FLAG : 0 );
+		Vp->CsrFcsr |= ( RvpFpuIsSignalingNanF32( Lhs ) ? RV_FCSR_NV_FLAG : 0 );
 		return Rhs;
 	} else if( RvpFpuIsNanF32( Rhs ) ) {
-		Vp->CsrFcsr |= ( RvpFpuIsSignallingNanF32( Rhs ) ? RV_FCSR_NV_FLAG : 0 );
+		Vp->CsrFcsr |= ( RvpFpuIsSignalingNanF32( Rhs ) ? RV_FCSR_NV_FLAG : 0 );
 		return Lhs;
 	}
 
@@ -2785,7 +2827,7 @@ RvpFpuNormalizeHostResultF32(
 	//
 	// Apply rounding.
 	//
-	Output = RvpFpuApplyRounding( Vp, Input );
+	// Output = RvpFpuApplyRounding( Vp, Output );
 
 	return Output;
 }
@@ -2825,9 +2867,9 @@ RvpFpuClassifyF32(
 	RawFraction = ( RawValue.U32 & ( ( 1ul << 23 ) - 1 ) );
 
 	//
-	// Check for signalling NaN and quiet NaN.
+	// Check for signaling NaN and quiet NaN.
 	//
-	if( RvpFpuIsSignallingNanF32( Value ) ) {
+	if( RvpFpuIsSignalingNanF32( Value ) ) {
 		return RV_FCLASS_RD_SIGNALING_NAN;
 	} else if( RvpFpuIsNanF32( Value ) ) {
 		return RV_FCLASS_RD_QUIET_NAN;
@@ -2865,7 +2907,7 @@ RvpFpuClassifyF32(
 #elif defined(RV_OPT_BUILD_LIBC)
 	switch( fpclassify( Value ) ) {
 	case FP_NAN:
-		return ( RvpFpuIsSignallingNanF32( Value ) ? RV_FCLASS_RD_SIGNALING_NAN : RV_FCLASS_RD_QUIET_NAN );
+		return ( RvpFpuIsSignalingNanF32( Value ) ? RV_FCLASS_RD_SIGNALING_NAN : RV_FCLASS_RD_QUIET_NAN );
 	case FP_INFINITE:
 		return ( RvpFpuIsSignSetF32( Value ) ? RV_FCLASS_RD_NEGATIVE_INF : RV_FCLASS_RD_POSITIVE_INF );
 	case FP_ZERO:
@@ -2880,6 +2922,13 @@ RvpFpuClassifyF32(
 	#error "Unsupported."
 #endif
 }
+
+//
+// TODO:
+// A value of 111 in the instruction's rm field selects the dynamic rounding mode held in frm.
+// If frm is set to an invalid value (101-111), any subsequent attempt to execute a floating-point
+// operation with a dynamic rounding mode will raise an illegal instruction exception.
+//
 
 //
 // RV32F FMA function implementations.
@@ -2945,11 +2994,22 @@ RvpInstructionExecuteOpcodeMAdd(
 	}
 
 	//
+	// The fused multiply-add instructions must set the invalid operation exception flag when the
+	// multiplicands are inf and zero, even when the addend is a quiet NaN.
+	// IEEE 754 specifies the result of (0 * INF) as NaN.
+	//
+	if( ( RvpFpuIsInfinityF32( Vp->Fr[ Rs1 ] ) && Vp->Fr[ Rs2 ] == 0.f )
+		|| ( RvpFpuIsInfinityF32( Vp->Fr[ Rs2 ] ) && Vp->Fr[ Rs1 ] == 0.f ) )
+	{
+		Vp->CsrFcsr |= RV_FCSR_NV_FLAG;
+	}
+
+	//
 	// FMADD.S multiplies the values in rs1 and rs2, adds the value in rs3
 	// and writes the final result to rd. FMADD.S computes (rs1*rs2)+rs3.
 	// TODO: Explicitly cast operands to single-precision RV_FLOAT?
 	//
-	Vp->Fr[ Rd ] = ( RV_FLOATR )( RV_FLOAT )( Vp->Fr[ Rs3 ] + ( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) );
+	Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, ( RV_FLOAT )( Vp->Fr[ Rs3 ] + ( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) ) );
 	Vp->Pc += 4;
 }
 
@@ -3006,11 +3066,22 @@ RvpInstructionExecuteOpcodeMSub(
 	}
 
 	//
+	// The fused multiply-add instructions must set the invalid operation exception flag when the
+	// multiplicands are inf and zero, even when the addend is a quiet NaN.
+	// IEEE 754 specifies the result of (0 * INF) as NaN.
+	//
+	if( ( RvpFpuIsInfinityF32( Vp->Fr[ Rs1 ] ) && Vp->Fr[ Rs2 ] == 0.f )
+		|| ( RvpFpuIsInfinityF32( Vp->Fr[ Rs2 ] ) && Vp->Fr[ Rs1 ] == 0.f ) )
+	{
+		Vp->CsrFcsr |= RV_FCSR_NV_FLAG;
+	}
+
+	//
 	// FMSUB.S multiplies the values in rs1 and rs2, subtracts the value in rs3,
 	// and writes the final result to rd. FMSUB.S computes (rs1*rs2)-rs3.
 	// TODO: Explicitly cast operands to single-precision RV_FLOAT?
 	//
-	Vp->Fr[ Rd ] = ( RV_FLOATR )( RV_FLOAT )( ( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) - Vp->Fr[ Rs3 ] );
+	Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, ( RV_FLOAT )( ( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) - Vp->Fr[ Rs3 ] ) );
 	Vp->Pc += 4;
 }
 
@@ -3067,12 +3138,23 @@ RvpInstructionExecuteOpcodeNMSub(
 	}
 
 	//
+	// The fused multiply-add instructions must set the invalid operation exception flag when the
+	// multiplicands are inf and zero, even when the addend is a quiet NaN.
+	// IEEE 754 specifies the result of (0 * INF) as NaN.
+	//
+	if( ( RvpFpuIsInfinityF32( Vp->Fr[ Rs1 ] ) && Vp->Fr[ Rs2 ] == 0.f )
+		|| ( RvpFpuIsInfinityF32( Vp->Fr[ Rs2 ] ) && Vp->Fr[ Rs1 ] == 0.f ) )
+	{
+		Vp->CsrFcsr |= RV_FCSR_NV_FLAG;
+	}
+
+	//
 	// FNMSUB.S multiplies the values in rs1 and rs2, negates the product,
 	// adds the value in rs3, and writes the final result to rd.
 	// FNMSUB.S computes -(rs1(rs2)+rs3.
 	// TODO: Explicitly cast operands to single-precision RV_FLOAT?
 	//
-	Vp->Fr[ Rd ] = ( RV_FLOATR )( RV_FLOAT )( -( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) + Vp->Fr[ Rs3 ] );
+	Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, ( RV_FLOAT )( -( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) + Vp->Fr[ Rs3 ] ) );
 	Vp->Pc += 4;
 }
 
@@ -3129,12 +3211,23 @@ RvpInstructionExecuteOpcodeNMAdd(
 	}
 
 	//
+	// The fused multiply-add instructions must set the invalid operation exception flag when the
+	// multiplicands are inf and zero, even when the addend is a quiet NaN.
+	// IEEE 754 specifies the result of (0 * INF) as NaN.
+	//
+	if( ( RvpFpuIsInfinityF32( Vp->Fr[ Rs1 ] ) && Vp->Fr[ Rs2 ] == 0.f )
+		|| ( RvpFpuIsInfinityF32( Vp->Fr[ Rs2 ] ) && Vp->Fr[ Rs1 ] == 0.f ) )
+	{
+		Vp->CsrFcsr |= RV_FCSR_NV_FLAG;
+	}
+
+	//
 	// FNMADD.S multiplies the values in rs1 and rs2, negates the product,
 	// subtracts the value in rs3, and writes the final result to rd
 	// FNMADD.S computes -(rs1*rs2)-rs3.
 	// TODO: Explicitly cast operands to single-precision RV_FLOAT?
 	//
-	Vp->Fr[ Rd ] = ( RV_FLOATR )( RV_FLOAT )( -( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) - Vp->Fr[ Rs3 ] );
+	Vp->Fr[ Rd ] = RvpFpuNormalizeHostResultF32( Vp, ( RV_FLOAT )( -( Vp->Fr[ Rs1 ] * Vp->Fr[ Rs2 ] ) - Vp->Fr[ Rs3 ] ) );
 	Vp->Pc += 4;
 }
 
@@ -3142,7 +3235,7 @@ RvpInstructionExecuteOpcodeNMAdd(
 // RV32F OP-FP/LOAD/STORE implementations.
 // TODO: Improve classification for FP instructions, and clean
 // up/simplify dispatch, this function has grown a bit too messy.
-//
+// 
 
 static
 VOID
@@ -3379,8 +3472,8 @@ RvpInstructionExecuteOpcodeOpFp(
 			// exception flag if either input is a signaling NaN.
 			//
 			ShouldSignalNV = (
-				RvpFpuIsSignallingNanF32( ( RV_FLOAT )Vp->Fr[ Rs1 ] )
-				|| RvpFpuIsSignallingNanF32( ( RV_FLOAT )Vp->Fr[ Rs2 ] )
+				RvpFpuIsSignalingNanF32( ( RV_FLOAT )Vp->Fr[ Rs1 ] )
+				|| RvpFpuIsSignalingNanF32( ( RV_FLOAT )Vp->Fr[ Rs2 ] )
 			);
 			Vp->CsrFcsr |= ( ShouldSignalNV ? RV_FCSR_NV_FLAG : 0 );
 
@@ -3654,7 +3747,7 @@ RvpInstructionExecute(
 		RvpInstructionExecuteOpcodeOp32( Vp, Instruction );
 		break;
 #endif
-#if 0 /*defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D)*/
+#if (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
 	case RV_OPCODE_MADD:
 		RvpInstructionExecuteOpcodeMAdd( Vp, Instruction );
 		break;
