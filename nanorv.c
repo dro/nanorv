@@ -702,9 +702,9 @@ RvpFetchInstructionWord(
 	}
 
 	//
-	// Convert from big-endian to host endianness and return fetched word.
+	// Convert from little-endian to host endianness and return fetched word.
 	//
-	*pWord = RV_BIG_ENDIAN( *( RV_UINT32* )HostAddress );
+	*pWord = RV_LITTLE_ENDIAN_32( *( RV_UINT32* )HostAddress );
 	return RV_TRUE;
 }
 
@@ -2542,7 +2542,7 @@ RvpFpuIsNanF32(
 	// IEEE-754 single-precision floating-point values are encoded in binary
 	// as 1 sign bit, 8 exponent bits, and 23 fraction bits, ordered respectively.
 	//
-	RawValue = ( RV_FLOAT32_RAW ){ .F32 = Value };
+	RawValue    = ( RV_FLOAT32_RAW ){ .F32 = Value };
 	RawExponent = ( ( RawValue.U32 >> 23ul ) & ( ( 1ul << 8 ) - 1 ) );
 	RawFraction = ( RawValue.U32 & ( ( 1ul << 23 ) - 1 ) );
 

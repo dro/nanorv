@@ -128,12 +128,12 @@ typedef union _RV_FLOAT64_RAW {
 #endif
 
 //
-// Convert from host-endianness to big-endian (and vice versa).
+// Convert from host-endianness to little-endian (and vice versa).
 //
 #ifdef RV_OPT_HOST_BIG_ENDIAN
-#define RV_BIG_ENDIAN(x) (x)
+#define RV_LITTLE_ENDIAN_32(x) RV_BYTESWAP32((x))
 #else
-#define RV_BIG_ENDIAN(x) RV_BYTESWAP32((x))
+#define RV_LITTLE_ENDIAN_32(x) (x)
 #endif
 
 //
