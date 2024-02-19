@@ -25,8 +25,7 @@
 #define _Inout_
 #define _Inout_bytecount_(x)
 #define _In_
-#define _In_
-#define _In_
+#define _In_reads_bytes_(x)
 #define _Outptr_
 #define _Out_
 #define _Success_(x)
@@ -140,6 +139,93 @@ typedef union _RV_FLOAT64_RAW {
 // Inline function.
 //
 #define RV_FORCEINLINE __forceinline
+
+//
+// Standard ABI:
+// Register   ABI Name   Description                        Saver
+// x0         zero       Hard-wired zero                      -
+// x1         ra         Return address                     Caller
+// x2         sp         Stack pointer                      Callee
+// x3         gp         Global pointer                       -
+// x4         tp         Thread pointer                       -
+// x5-7       t0-2       Temporaries                        Caller
+// x8         s0/fp      Saved register/frame pointer       Callee
+// x9         s1         Saved register                     Callee
+// x10-11     a0-1       Function arguments/return values   Caller
+// x12-17     a2-7       Function arguments                 Caller
+// x18-27     s2-11      Saved registers                    Callee
+// x28-31     t3-6       Temporaries                        Caller
+// f0-7       ft0-7      FP temporaries                     Caller
+// f8-9       fs0-1      FP saved registers                 Callee
+// f10-11     fa0-1      FP arguments/return values         Caller
+// f12-17     fa2-7      FP arguments                       Caller
+// f18-27     fs2-11     FP saved registers                 Callee
+// f28-31     ft8-11     FP temporaries                     Caller
+//
+#define RV_REG_ZERO 0
+#define RV_REG_RA   1
+#define RV_REG_SP   2
+#define RV_REG_GP   3
+#define RV_REG_TP   4
+#define RV_REG_T0   5
+#define RV_REG_T1   6
+#define RV_REG_T2   7
+#define RV_REG_S0   8
+#define RV_REG_S1   9
+#define RV_REG_A0   10
+#define RV_REG_A1   11
+#define RV_REG_A2   12
+#define RV_REG_A3   13
+#define RV_REG_A4   14
+#define RV_REG_A5   15
+#define RV_REG_A6   16
+#define RV_REG_A7   17
+#define RV_REG_S2   18
+#define RV_REG_S3   19
+#define RV_REG_S4   20
+#define RV_REG_S5   21
+#define RV_REG_S6   22
+#define RV_REG_S7   23
+#define RV_REG_S8   24
+#define RV_REG_S9   25
+#define RV_REG_S10  26
+#define RV_REG_S11  27
+#define RV_REG_T3   28
+#define RV_REG_T4   29
+#define RV_REG_T5   30
+#define RV_REG_T6   31
+#define RV_REG_FT0  0
+#define RV_REG_FT1  1
+#define RV_REG_FT2  2
+#define RV_REG_FT3  3
+#define RV_REG_FT4  4
+#define RV_REG_FT5  5
+#define RV_REG_FT6  6
+#define RV_REG_FT7  7
+#define RV_REG_FS0  8
+#define RV_REG_FS1  9
+#define RV_REG_FA0  10
+#define RV_REG_FA1  11
+#define RV_REG_FA2  12
+#define RV_REG_FA3  13
+#define RV_REG_FA4  14
+#define RV_REG_FA5  15
+#define RV_REG_FA6  16
+#define RV_REG_FA7  17
+#define RV_REG_FS2  18
+#define RV_REG_FS3  19
+#define RV_REG_FS4  20
+#define RV_REG_FS5  21
+#define RV_REG_FS6  22
+#define RV_REG_FS7  23
+#define RV_REG_FS8  24
+#define RV_REG_FS9  25
+#define RV_REG_FS10 26
+#define RV_REG_FS11 27
+#define RV_REG_FT8  28
+#define RV_REG_FT9  29
+#define RV_REG_FT10 30
+#define RV_REG_FT11 31
 
 //
 // Max GPR (X register) and FPR (F register) counts.

@@ -408,6 +408,11 @@
 #define RV_OP_FP_RS2_FCVT_S_W  (0)
 #define RV_OP_FP_RS2_FCVT_S_WU (1)
 #define RV_OP_FP_RS2_FMV_W_X   (0)
+#define RV_OP_FP_RS2_FCVT_L_S  (2)
+#define RV_OP_FP_RS2_FCVT_LU_S (3)
+#define RV_OP_FP_RS2_FCVT_S_L  (2)
+#define RV_OP_FP_RS2_FCVT_S_LU (3)
+
 
 //
 // Instruction funct12 values.
@@ -564,6 +569,130 @@
 #define RV_PAGE_FLAG_X (1ul << 3)
 
 //
+// SV48 definitions.
+//
+
+
+//
+// SV48 VA.
+//
+
+#define RV_SV48_VA_PGOFF_SHIFT (0ull)
+#define RV_SV48_VA_PGOFF_MASK  ((1ull << (11 - 0 + 1)) - 1)
+
+#define RV_SV48_VA_VPN0_SHIFT        (12ull)
+#define RV_SV48_VA_VPN0_MASK         ((1ull << (20 - 12 + 1)) - 1)
+							         
+#define RV_SV48_VA_VPN1_SHIFT        (21ull)
+#define RV_SV48_VA_VPN1_MASK         ((1ull << (29 - 21 + 1)) - 1)
+							         
+#define RV_SV48_VA_VPN2_SHIFT        (30ull)
+#define RV_SV48_VA_VPN2_MASK         ((1ull << (38 - 30 + 1)) - 1)
+							         
+#define RV_SV48_VA_VPN3_SHIFT        (39ull)
+#define RV_SV48_VA_VPN3_MASK         ((1ull << (47 - 39 + 1)) - 1)
+
+#define RV_SV48_VA_VPN_BIT_COUNT     (8ull)
+
+//
+// SV48 PA.
+//
+
+#define RV_SV48_PA_PGOFF_SHIFT (0ull)
+#define RV_SV48_PA_PGOFF_MASK  ((1ull << (11 - 0 + 1)) - 1)
+
+#define RV_SV48_PA_PPN0_SHIFT        (12ull)
+#define RV_SV48_PA_PPN0_MASK         ((1ull << (20 - 12 + 1)) - 1)
+
+#define RV_SV48_PA_PPN1_SHIFT        (21ull)
+#define RV_SV48_PA_PPN1_MASK         ((1ull << (29 - 21 + 1)) - 1)
+
+#define RV_SV48_PA_PPN2_SHIFT        (30ull)
+#define RV_SV48_PA_PPN2_MASK         ((1ull << (38 - 30 + 1)) - 1)
+
+#define RV_SV48_PA_PPN3_SHIFT        (39ull)
+#define RV_SV48_PA_PPN3_MASK         ((1ull << (55 - 39 + 1)) - 1)
+
+//
+// SV48 PTE.
+//
+
+#define RV_SV48_PTE_V_SHIFT         (0ull) /* (V) Valid bit. */ 
+#define RV_SV48_PTE_V_MASK          (1ull)
+#define RV_SV48_PTE_V_FLAG          (RV_SV48_PTE_V_MASK << RV_SV48_PTE_V_SHIFT)
+
+#define RV_SV48_PTE_R_SHIFT         (1ull) /* (R) Read access bit. */
+#define RV_SV48_PTE_R_MASK          (1ull)
+#define RV_SV48_PTE_R_FLAG          (RV_SV48_PTE_R_MASK << RV_SV48_PTE_R_SHIFT)
+
+#define RV_SV48_PTE_W_SHIFT         (2ull) /* (W) Write access bit. */
+#define RV_SV48_PTE_W_MASK          (1ull)
+#define RV_SV48_PTE_W_FLAG          (RV_SV48_PTE_W_MASK << RV_SV48_PTE_W_SHIFT)
+
+#define RV_SV48_PTE_X_SHIFT         (3ull) /* (X) Execute access bit. */
+#define RV_SV48_PTE_X_MASK          (1ull)
+#define RV_SV48_PTE_X_FLAG          (RV_SV48_PTE_X_MASK << RV_SV48_PTE_X_SHIFT)
+
+#define RV_SV48_PTE_U_SHIFT         (4ull) /* (U) User-mode access bit. */
+#define RV_SV48_PTE_U_MASK          (1ull)
+#define RV_SV48_PTE_U_FLAG          (RV_SV48_PTE_U_MASK << RV_SV48_PTE_U_SHIFT)
+
+#define RV_SV48_PTE_ACCESS_FLAGS    (RV_SV48_PTE_R_FLAG | RV_SV48_PTE_W_FLAG | RV_SV48_PTE_X_FLAG | RV_SV48_PTE_U_FLAG)
+
+#define RV_SV48_PTE_G_SHIFT         (5ull) /* (G) Global mapping bit. */
+#define RV_SV48_PTE_G_MASK          (1ull)
+#define RV_SV48_PTE_G_FLAG          (RV_SV48_PTE_G_MASK << RV_SV48_PTE_G_SHIFT)
+
+#define RV_SV48_PTE_A_SHIFT         (6ull) /* (A) Accessed bit. */
+#define RV_SV48_PTE_A_MASK          (1ull)
+#define RV_SV48_PTE_A_FLAG          (RV_SV48_PTE_A_MASK << RV_SV48_PTE_A_SHIFT)
+
+#define RV_SV48_PTE_D_SHIFT         (7ull) /* (D) Dirty bit. */
+#define RV_SV48_PTE_D_MASK          (1ull)
+#define RV_SV48_PTE_D_FLAG          (RV_SV48_PTE_D_MASK << RV_SV48_PTE_D_SHIFT)
+
+
+#define RV_SV48_PTE_RSW_SHIFT       (8ull) /* (RSW) Reserved for use by supervisor software. */
+#define RV_SV48_PTE_RSW_MASK        ((1ull << (9 - 8 + 1)) - 1)
+
+#define RV_SV48_PTE_PPN0_SHIFT      (10ull) /* (PPN0) Physical page number part 0. */
+#define RV_SV48_PTE_PPN0_MASK       ((1ull << (18 - 10 + 1)) - 1)
+
+#define RV_SV48_PTE_PPN1_SHIFT      (19ull) /* (PPN1) Physical page number part 1. */
+#define RV_SV48_PTE_PPN1_MASK       ((1ull << (27 - 19 + 1)) - 1)
+
+#define RV_SV48_PTE_PPN2_SHIFT      (28ull) /* (PPN2) Physical page number part 2. */
+#define RV_SV48_PTE_PPN2_MASK       ((1ull << (36 - 28 + 1)) - 1)
+
+#define RV_SV48_PTE_PPN3_SHIFT      (37ull) /* (PPN3) Physical page number part 3. */
+#define RV_SV48_PTE_PPN3_MASK       ((1ull << (53 - 37 + 1)) - 1)
+
+#define RV_SV48_PTE_RESERVED0_SHIFT (54ull) /* Reserved. */
+#define RV_SV48_PTE_RESERVED0_MASK  ((1ull << (60 - 54 + 1)) - 1)
+
+#define RV_SV48_PTE_PBMT_SHIFT      (61ull) /* (PBMT) Attributes for Svbpmt page-based memory types. */
+#define RV_SV48_PTE_PBMT_MASK       ((1ull << (62 - 61 + 1)) - 1)
+							        
+#define RV_SV48_PTE_N_SHIFT         (63ull) /* (N) Svnapot. */
+#define RV_SV48_PTE_N_MASK          (1ul)
+#define RV_SV48_PTE_N_FLAG          (RV_SV48_PTE_N_MASK << RV_SV48_PTE_N_SHIFT)
+
+#define RV_SV47_PTE_FULL_PPN_MASK ( ( RV_SV48_PTE_PPN0_MASK << (0*8)) \
+									| ( RV_SV48_PTE_PPN1_MASK << (1*8) ) \
+									| ( RV_SV48_PTE_PPN2_MASK << (2*8) ) \
+									| ( RV_SV48_PTE_PPN3_MASK << (3*8) ) )
+
+#define RV_SV48_PTE_FULL_PPN(PteValue) \
+	(((PteValue) >> RV_SV48_PTE_PPN0_SHIFT) & RV_SV47_PTE_FULL_PPN_MASK)
+
+//
+// SV48 page table parameters (page size, level count, PTE size).
+//
+#define RV_SV48_PAGESIZE (0x1000u)
+#define RV_SV48_LEVELS   (4u)
+#define RV_SV48_PTESIZE  (8u)
+
+//
 // Instruction decoder helpers.
 //
 
@@ -707,6 +836,7 @@ RvpFetchInstructionWord(
 	*pWord = RV_LITTLE_ENDIAN_32( *( RV_UINT32* )HostAddress );
 	return RV_TRUE;
 }
+
 
 //
 // RV32I opcodes.
@@ -3302,6 +3432,7 @@ RvpInstructionExecuteOpcodeOpFp(
 	// 0010100 rs2   rs1 001 rd 1010011 FMAX.S
 	// 1100000 00000 rs1 rm  rd 1010011 FCVT.W.S
 	// 1100000 00001 rs1 rm  rd 1010011 FCVT.WU.S
+	// 1100000 00011 rs1 rm  rd 1010011 FCVT.LU.S
 	// 1110000 00000 rs1 000 rd 1010011 FMV.X.W
 	// 1010000 rs2   rs1 010 rd 1010011 FEQ.S
 	// 1010000 rs2   rs1 001 rd 1010011 FLT.S
@@ -3310,6 +3441,8 @@ RvpInstructionExecuteOpcodeOpFp(
 	// 1101000 00000 rs1 rm  rd 1010011 FCVT.S.W
 	// 1101000 00001 rs1 rm  rd 1010011 FCVT.S.WU
 	// 1111000 00000 rs1 000 rd 1010011 FMV.W.X
+	// 1101000 00010 rs1 rm  rd 1010011 FCVT.S.L
+	// 1101000 00011 rs1 rm  rd 1010011 FCVT.S.LU
 	//
 	switch( Class ) {
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FADD_S ):
@@ -3351,7 +3484,7 @@ RvpInstructionExecuteOpcodeOpFp(
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FCVT_W_S_WU_S ):
 		//
-		// (S -> W).
+		// (S -> W/L).
 		// FCVT.W.S converts register rs1 to a signed 32-bit integer in integer register rd.
 		// FCVT.WU.S converts to unsigned integer 32-bit integer.
 		// For XLEN> 32, FCVT.W[U].S sign-extends the 32-bit result to the destination register width.
@@ -3363,26 +3496,48 @@ RvpInstructionExecuteOpcodeOpFp(
 		// All floating-point to integer and integer to floating-point conversion instructions round according
 		// to the rm field.
 		//
-		if( Rs2 == RV_OP_FP_RS2_FCVT_W_S ) {
+		switch( Rs2 ) {
+		case RV_OP_FP_RS2_FCVT_W_S:
 			Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )RvpFpuApplyRounding( Vp, Vp->Fr[ Rs1 ] );
-		} else if( Rs2 == RV_OP_FP_RS2_FCVT_WU_S ) {
+			break;
+		case RV_OP_FP_RS2_FCVT_WU_S:
 			Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )( RV_UINT32 )RvpFpuApplyRounding( Vp, Vp->Fr[ Rs1 ] );
-		} else {
+			break;
+#if defined(RV_OPT_RV64I)
+		case RV_OP_FP_RS2_FCVT_L_S:
+			Vp->Xr[ Rd ] = ( RV_INTR )RvpFpuApplyRounding( Vp, Vp->Fr[ Rs1 ] );
+			break;
+		case RV_OP_FP_RS2_FCVT_LU_S:
+			Vp->Xr[ Rd ] = ( RV_UINTR )RvpFpuApplyRounding( Vp, Vp->Fr[ Rs1 ] );
+			break;
+#endif
+		default:
 			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
 			return;
 		}
 		break;
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP_FP, 0, RV_OP_FP_FUNCT7_FCVT_S_W_S_WU ):
 		//
-		// (W -> S).
+		// (W/L -> S).
 		// FCVT.S.W or FCVT.S.L converts a 32-bit or 64-bit signed integer, respectively,
 		// in integer register rs1 into a floating-point number in floating-point register rd.
 		//
-		if( Rs2 == RV_OP_FP_RS2_FCVT_S_W ) {
-			Vp->Fr[ Rd ] = RvpFpuApplyRounding( Vp, ( RV_FLOATR )( RV_INTR )Vp->Xr[ Rs1 ] );
-		} else if( Rs2 == RV_OP_FP_RS2_FCVT_S_WU ) {
+		switch( Rs2 ) {
+		case RV_OP_FP_RS2_FCVT_S_W:
+			Vp->Fr[ Rd ] = RvpFpuApplyRounding( Vp, ( RV_FLOATR )( RV_INT32 )Vp->Xr[ Rs1 ] );
+			break;
+		case RV_OP_FP_RS2_FCVT_S_WU:
+			Vp->Fr[ Rd ] = RvpFpuApplyRounding( Vp, ( RV_FLOATR )( RV_UINT32 )Vp->Xr[ Rs1 ] );
+			break;
+#if defined(RV_OPT_RV64I)
+		case RV_OP_FP_RS2_FCVT_S_L:
+			Vp->Fr[ Rd ] = RvpFpuApplyRounding( Vp, ( RV_FLOATR )( RV_INT64 )Vp->Xr[ Rs1 ] );
+			break;
+		case RV_OP_FP_RS2_FCVT_S_LU:
 			Vp->Fr[ Rd ] = RvpFpuApplyRounding( Vp, ( RV_FLOATR )Vp->Xr[ Rs1 ] );
-		} else {
+			break;
+#endif
+		default:
 			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
 			return;
 		}
