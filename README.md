@@ -11,10 +11,9 @@ No external dependencies, and no implicit depedency on any runtime/LibC (unless 
 * RV32M/RV64M
 * Zicsr
 * Counter CSRs
-* RV32F
+* RV32F/RV64F
 
 ## Bases/extensions that are a work in progress.
-* RV64F (CVT instructions)
 * RV32D/RV64D
 * RV32A/AMO
 
