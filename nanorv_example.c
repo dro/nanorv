@@ -26,7 +26,7 @@ RvTest(
 		/* Begin the flat span of memory at guest effective address 0. */
 		.MmuVaSpanGuestBase = 0,
 		/* Begin executing at guest effective address 0. */
-		.Pc                = 0
+		.Pc                 = 0
 	};
 
 	//
