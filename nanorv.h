@@ -26,9 +26,12 @@
 #define _Inout_bytecount_(x)
 #define _In_
 #define _In_reads_bytes_(x)
+#define _Out_writes_bytes_(x)
+#define _Out_writes_bytes_all_(x)
 #define _Outptr_
 #define _Out_
 #define _Success_(x)
+#define _Analysis_assume_(x)
 #endif
 
 //
@@ -78,6 +81,12 @@ typedef RV_DOUBLE RV_FLOATR;
 #elif defined(RV_OPT_RV32F)
 typedef RV_FLOAT RV_FLOATR;
 #endif
+
+//
+// Validate float and double sizes for memory load/store and raw access.
+//
+_Static_assert( sizeof( RV_FLOAT ) == sizeof( RV_UINT32 ), "Invalid single-precision float size." );
+_Static_assert( sizeof( RV_DOUBLE ) == sizeof( RV_UINT64 ), "Invalid double-precision float size." );
 
 //
 // Raw FLOAT32 union, used to access raw binary encoding of a float.
@@ -139,6 +148,157 @@ typedef union _RV_FLOAT64_RAW {
 // Inline function.
 //
 #define RV_FORCEINLINE __forceinline
+
+
+//
+// Shared PTE flags (temporary).
+//
+#define RV_PTE_FLAG_R (1ul << 1)
+#define RV_PTE_FLAG_W (1ul << 2)
+#define RV_PTE_FLAG_X (1ul << 3)
+#define RV_PTE_FLAG_U (1ul << 4)
+#define RV_PTE_FLAG_G (1ul << 5)
+#define RV_PTE_FLAG_A (1ul << 6)
+#define RV_PTE_FLAG_D (1ul << 7)
+
+//
+// SV48 definitions.
+//
+
+
+//
+// SV48 VA.
+//
+
+#define RV_SV48_VA_PGOFF_SHIFT (0ull)
+#define RV_SV48_VA_PGOFF_MASK  ((1ull << (11 - 0 + 1)) - 1)
+
+#define RV_SV48_VA_VPN0_SHIFT  (12ull)
+#define RV_SV48_VA_VPN0_MASK   ((1ull << (20 - 12 + 1)) - 1)
+							   
+#define RV_SV48_VA_VPN1_SHIFT  (21ull)
+#define RV_SV48_VA_VPN1_MASK   ((1ull << (29 - 21 + 1)) - 1)
+							   
+#define RV_SV48_VA_VPN2_SHIFT  (30ull)
+#define RV_SV48_VA_VPN2_MASK   ((1ull << (38 - 30 + 1)) - 1)
+							   
+#define RV_SV48_VA_VPN3_SHIFT  (39ull)
+#define RV_SV48_VA_VPN3_MASK   ((1ull << (47 - 39 + 1)) - 1)
+							   
+#define RV_SV48_VA_VPN_BIT_COUNT (9ull)
+
+//
+// SV48 PA.
+//
+
+#define RV_SV48_PA_PGOFF_SHIFT (0ull)
+#define RV_SV48_PA_PGOFF_MASK  ((1ull << (11 - 0 + 1)) - 1)
+
+#define RV_SV48_PA_PPN0_SHIFT  (12ull)
+#define RV_SV48_PA_PPN0_MASK   ((1ull << (20 - 12 + 1)) - 1)
+							   
+#define RV_SV48_PA_PPN1_SHIFT  (21ull)
+#define RV_SV48_PA_PPN1_MASK   ((1ull << (29 - 21 + 1)) - 1)
+							   
+#define RV_SV48_PA_PPN2_SHIFT  (30ull)
+#define RV_SV48_PA_PPN2_MASK   ((1ull << (38 - 30 + 1)) - 1)
+							   
+#define RV_SV48_PA_PPN3_SHIFT  (39ull)
+#define RV_SV48_PA_PPN3_MASK   ((1ull << (55 - 39 + 1)) - 1)
+
+//
+// SV48 PTE.
+//
+
+#define RV_SV48_PTE_V_SHIFT         (0ull) /* (V) Valid bit. */ 
+#define RV_SV48_PTE_V_MASK          (1ull)
+#define RV_SV48_PTE_V_FLAG          (RV_SV48_PTE_V_MASK << RV_SV48_PTE_V_SHIFT)
+
+#define RV_SV48_PTE_R_SHIFT         (1ull) /* (R) Read access bit. */
+#define RV_SV48_PTE_R_MASK          (1ull)
+#define RV_SV48_PTE_R_FLAG          (RV_SV48_PTE_R_MASK << RV_SV48_PTE_R_SHIFT)
+
+#define RV_SV48_PTE_W_SHIFT         (2ull) /* (W) Write access bit. */
+#define RV_SV48_PTE_W_MASK          (1ull)
+#define RV_SV48_PTE_W_FLAG          (RV_SV48_PTE_W_MASK << RV_SV48_PTE_W_SHIFT)
+
+#define RV_SV48_PTE_X_SHIFT         (3ull) /* (X) Execute access bit. */
+#define RV_SV48_PTE_X_MASK          (1ull)
+#define RV_SV48_PTE_X_FLAG          (RV_SV48_PTE_X_MASK << RV_SV48_PTE_X_SHIFT)
+
+#define RV_SV48_PTE_U_SHIFT         (4ull) /* (U) User-mode access bit. */
+#define RV_SV48_PTE_U_MASK          (1ull)
+#define RV_SV48_PTE_U_FLAG          (RV_SV48_PTE_U_MASK << RV_SV48_PTE_U_SHIFT)
+
+#define RV_SV48_PTE_ACCESS_FLAGS    (RV_SV48_PTE_R_FLAG | RV_SV48_PTE_W_FLAG | RV_SV48_PTE_X_FLAG | RV_SV48_PTE_U_FLAG)
+
+#define RV_SV48_PTE_G_SHIFT         (5ull) /* (G) Global mapping bit. */
+#define RV_SV48_PTE_G_MASK          (1ull)
+#define RV_SV48_PTE_G_FLAG          (RV_SV48_PTE_G_MASK << RV_SV48_PTE_G_SHIFT)
+
+#define RV_SV48_PTE_A_SHIFT         (6ull) /* (A) Accessed bit. */
+#define RV_SV48_PTE_A_MASK          (1ull)
+#define RV_SV48_PTE_A_FLAG          (RV_SV48_PTE_A_MASK << RV_SV48_PTE_A_SHIFT)
+
+#define RV_SV48_PTE_D_SHIFT         (7ull) /* (D) Dirty bit. */
+#define RV_SV48_PTE_D_MASK          (1ull)
+#define RV_SV48_PTE_D_FLAG          (RV_SV48_PTE_D_MASK << RV_SV48_PTE_D_SHIFT)
+
+#define RV_SV48_PTE_RSW_SHIFT       (8ull) /* (RSW) Reserved for use by supervisor software. */
+#define RV_SV48_PTE_RSW_MASK        ((1ull << (9 - 8 + 1)) - 1)
+
+#define RV_SV48_PTE_PPN0_SHIFT      (10ull) /* (PPN0) Physical page number part 0. */
+#define RV_SV48_PTE_PPN0_MASK       ((1ull << (18 - 10 + 1)) - 1)
+
+#define RV_SV48_PTE_PPN1_SHIFT      (19ull) /* (PPN1) Physical page number part 1. */
+#define RV_SV48_PTE_PPN1_MASK       ((1ull << (27 - 19 + 1)) - 1)
+
+#define RV_SV48_PTE_PPN2_SHIFT      (28ull) /* (PPN2) Physical page number part 2. */
+#define RV_SV48_PTE_PPN2_MASK       ((1ull << (36 - 28 + 1)) - 1)
+
+#define RV_SV48_PTE_PPN3_SHIFT      (37ull) /* (PPN3) Physical page number part 3. */
+#define RV_SV48_PTE_PPN3_MASK       ((1ull << (53 - 37 + 1)) - 1)
+
+#define RV_SV48_PTE_RESERVED0_SHIFT (54ull) /* Reserved. */
+#define RV_SV48_PTE_RESERVED0_MASK  ((1ull << (60 - 54 + 1)) - 1)
+
+#define RV_SV48_PTE_PBMT_SHIFT      (61ull) /* (PBMT) Attributes for Svbpmt page-based memory types. */
+#define RV_SV48_PTE_PBMT_MASK       ((1ull << (62 - 61 + 1)) - 1)
+							        
+#define RV_SV48_PTE_N_SHIFT         (63ull) /* (N) Svnapot. */
+#define RV_SV48_PTE_N_MASK          (1ul)
+#define RV_SV48_PTE_N_FLAG          (RV_SV48_PTE_N_MASK << RV_SV48_PTE_N_SHIFT)
+
+#define RV_SV47_PTE_FULL_PPN_MASK ( ( RV_SV48_PTE_PPN0_MASK << (0*8)) \
+									| ( RV_SV48_PTE_PPN1_MASK << (1*8) ) \
+									| ( RV_SV48_PTE_PPN2_MASK << (2*8) ) \
+									| ( RV_SV48_PTE_PPN3_MASK << (3*8) ) )
+
+#define RV_SV48_PTE_FULL_PPN(PteValue) \
+	(((PteValue) >> RV_SV48_PTE_PPN0_SHIFT) & RV_SV47_PTE_FULL_PPN_MASK)
+
+//
+// SV48 page table parameters (page size, level count, PTE size).
+//
+#define RV_SV48_PAGESIZE (0x1000ull)
+#define RV_SV48_LEVELS   (4u)
+#define RV_SV48_PTESIZE  (8ull)
+
+//
+// MMU radix tree page table walk result.
+//
+typedef struct _RV_MMU_TREE_WALK_RESULT {
+	RV_UINT IsPresent : 1;
+	RV_UINT IsAccessFault : 1;
+	RV_UINT Level : 5;
+
+	//
+	// (IsPresent == 1).
+	//
+	RV_UINT64 LeafPtePpn;
+	RV_UINT64 LeafPageSize;
+	RV_UINT64 PhysicalAddress;
+} RV_MMU_TREE_WALK_RESULT;
 
 //
 // Standard ABI:
@@ -253,13 +413,18 @@ typedef struct _RV_PROCESSOR {
 #endif
 
 	//
-	// Memory accessible to the guest processor.
-	// This is currently just a flat span of memory,
-	// will be changed as development furthers.
+	// A flat contiguous span of memory accessible to the guest processor.
+	// This currently takes precedence over the geust-to-host PTs.
 	//
-	RV_UINTR  VaSpanGuestBase;
-	VOID*     VaSpanHostBase;
-	RV_SIZE_T VaSpanSize;
+	RV_UINTR  MmuVaSpanGuestBase;
+	VOID*     MmuVaSpanHostBase;
+	RV_SIZE_T MmuVaSpanSize;
+
+	//
+	// Memory accessible to the guest processor through SV48 guest-to-host translation tables.
+	//
+	RV_UINT64  MmuGuestToHostPtPpn;
+	RV_BOOLEAN MmuUseGuestToHostPt;
 
 	//
 	// Timer states.
@@ -276,6 +441,19 @@ typedef struct _RV_PROCESSOR {
 	RV_UINT   EBreakPending : 1;
 	RV_UINT32 ExceptionIndex;
 } RV_PROCESSOR;
+
+//
+// Perform SV48 page table lookup.
+// Note: this function is currently only used for guest-to-host mapping.
+//
+
+RV_MMU_TREE_WALK_RESULT
+RvpMmuPtSv48TreeWalk(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT64     TableRootPpn,
+	_In_    RV_UINT64     LookupVa,
+	_In_    RV_UINT32     AccessFlags
+	);
 
 //
 // General processor tick execution functions (update values/timers, fetch and execute a instruction, etc).

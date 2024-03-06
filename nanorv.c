@@ -37,6 +37,118 @@
 #endif
 
 //
+// Allow usage of C11 std atomic functions.
+//
+#if defined(RV_OPT_BUILD_STD_ATOMIC)
+#include <stdatomic.h>
+#endif
+
+//
+// Relaxed memory-order atomic aligned store.
+//
+#if defined(RV_OPT_HOST_ATOMIC_ALIGNED_ACCESS)
+	#define RV_RELAXED_ATOMIC_STORE8(Destination, Value) \
+		( *( volatile RV_UINT8* )(Destination) = (Value) )
+	#define RV_RELAXED_ATOMIC_STORE16(Destination, Value) \
+		( *( volatile RV_UINT16* )(Destination) = (Value) )
+	#define RV_RELAXED_ATOMIC_STORE32(Destination, Value) \
+		( *( volatile RV_UINT32* )(Destination) = (Value) )
+	#define RV_RELAXED_ATOMIC_STORE64(Destination, Value) \
+		( *( volatile RV_UINT64* )(Destination) = (Value) )
+#elif defined(RV_OPT_BUILD_STD_ATOMIC)
+	#define RV_RELAXED_ATOMIC_STORE8(Destination, Value) \
+		atomic_exchange_explicit( ( volatile _Atomic(RV_UINT8)* )(Destination), (Value), memory_order_relaxed )
+	#define RV_RELAXED_ATOMIC_STORE16(Destination, Value) \
+		atomic_exchange_explicit( ( volatile _Atomic(RV_UINT16)* )(Destination), (Value), memory_order_relaxed )
+	#define RV_RELAXED_ATOMIC_STORE32(Destination, Value) \
+		atomic_exchange_explicit( ( volatile _Atomic(RV_UINT32)* )(Destination), (Value), memory_order_relaxed )
+	#define RV_RELAXED_ATOMIC_STORE64(Destination, Value) \
+		atomic_exchange_explicit( ( volatile _Atomic(RV_UINT64)* )(Destination), (Value), memory_order_relaxed )
+#elif defined(RV_OPT_BUILD_MSVC)
+	_Static_assert( sizeof( RV_UINT8 ) == sizeof( char ), "Invalid RV_UINT8 size." );
+	_Static_assert( sizeof( RV_UINT16 ) == sizeof( short ), "Invalid RV_UINT16 size." );
+	_Static_assert( sizeof( RV_UINT32 ) == sizeof( long ), "Invalid RV_UINT32 size." );
+	_Static_assert( sizeof( RV_UINT64 ) == sizeof( long long ), "Invalid RV_UINT64 size." );
+	#define RV_RELAXED_ATOMIC_STORE8(Destination, Value) \
+		_InterlockedExchange8( ( volatile char* )(Destination), (Value) )
+	#define RV_RELAXED_ATOMIC_STORE16(Destination, Value) \
+		_InterlockedExchange16( ( volatile short* )(Destination), (Value) )
+	#define RV_RELAXED_ATOMIC_STORE32(Destination, Value) \
+		_InterlockedExchange( ( volatile long* )(Destination), (Value) );
+	#define RV_RELAXED_ATOMIC_STORE64(Destination, Value) \
+		_InterlockedExchange64( ( volatile long long* )(Destination), (Value) );
+#else
+	#error "Unsupported."
+#endif
+
+//
+// Relaxed memory-order atomic aligned load.
+//
+#if defined(RV_OPT_HOST_ATOMIC_ALIGNED_ACCESS)
+	#define RV_RELAXED_ATOMIC_LOAD8(Source) \
+		( *( volatile RV_UINT8* )(Source) )
+	#define RV_RELAXED_ATOMIC_LOAD16(Source) \
+		( *( volatile RV_UINT16* )(Source) )
+	#define RV_RELAXED_ATOMIC_LOAD32(Source) \
+		( *( volatile RV_UINT32* )(Source) )
+	#define RV_RELAXED_ATOMIC_LOAD64(Source) \
+		( *( volatile RV_UINT64* )(Source) )
+#elif defined(RV_OPT_BUILD_STD_ATOMIC)
+	#define RV_RELAXED_ATOMIC_LOAD8(Source) \
+		atomic_fetch_add_explicit( ( volatile _Atomic(RV_UINT8)* )(Source), 0, memory_order_relaxed )
+	#define RV_RELAXED_ATOMIC_LOAD16(Source) \
+		atomic_fetch_add_explicit( ( volatile _Atomic(RV_UINT16)* )(Source), 0, memory_order_relaxed )
+	#define RV_RELAXED_ATOMIC_LOAD32(Source) \
+		atomic_fetch_add_explicit( ( volatile _Atomic(RV_UINT32)* )(Source), 0, memory_order_relaxed )
+	#define RV_RELAXED_ATOMIC_LOAD64(Source) \
+		atomic_fetch_add_explicit( ( volatile _Atomic(RV_UINT64)* )(Source), 0, memory_order_relaxed )
+#elif defined(RV_OPT_BUILD_MSVC)
+	_Static_assert( sizeof( RV_UINT8 ) == sizeof( char ), "Invalid RV_UINT8 size." );
+	_Static_assert( sizeof( RV_UINT16 ) == sizeof( short ), "Invalid RV_UINT16 size." );
+	_Static_assert( sizeof( RV_UINT32 ) == sizeof( long ), "Invalid RV_UINT32 size." );
+	_Static_assert( sizeof( RV_UINT64 ) == sizeof( long long ), "Invalid RV_UINT64 size." );
+
+#else
+	#error "Unsupported."
+#endif
+
+
+//
+// Internal MMU types/definitions.
+//
+
+
+#define RV_MMU_ACCESS_TYPE_LOAD    0
+#define RV_MMU_ACCESS_TYPE_STORE   1
+#define RV_MMU_ACCESS_TYPE_EXECUTE 2
+
+typedef enum _RV_MMU_ACCESS_SIZE {
+	RV_MMU_ACCESS_SIZE_BYTE        = 1,
+	RV_MMU_ACCESS_SIZE_HALF_WORD   = 2,
+	RV_MMU_ACCESS_SIZE_WORD        = 4,
+	RV_MMU_ACCESS_SIZE_DOUBLE_WORD = 8
+} RV_MMU_ACCESS_SIZE;
+
+typedef union _RV_MEM_VALUE {
+	RV_UINT8  AsU8;
+	RV_UINT16 AsU16;
+	RV_UINT32 AsU32;
+	RV_UINT64 AsU64;
+#if defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D)
+	RV_FLOAT  AsFloat;
+	RV_DOUBLE AsDouble;
+#endif
+} RV_MEM_VALUE;
+
+typedef struct _RV_MMU_ACCESS_CHUNK {
+	VOID*     Data;
+	RV_SIZE_T Size;
+} RV_MMU_ACCESS_CHUNK;
+
+#define RV_MMU_MIN_PAGESIZE 0x1000
+
+
+//
 // Instruction formats/instruction encoding helpers.
 //
 
@@ -556,142 +668,6 @@
 #define RV_CSR_VALUE_INSTRETH      (0xC82)
 #define RV_CSR_PERMISSION_INSTRETH (RV_CSR_ACCESS_READ)
 
-
-//
-// MMU-related values.
-//
-
-//
-// Page permission flags (temporary).
-//
-#define RV_PAGE_FLAG_R (1ul << 1)
-#define RV_PAGE_FLAG_W (1ul << 2)
-#define RV_PAGE_FLAG_X (1ul << 3)
-
-//
-// SV48 definitions.
-//
-
-
-//
-// SV48 VA.
-//
-
-#define RV_SV48_VA_PGOFF_SHIFT (0ull)
-#define RV_SV48_VA_PGOFF_MASK  ((1ull << (11 - 0 + 1)) - 1)
-
-#define RV_SV48_VA_VPN0_SHIFT        (12ull)
-#define RV_SV48_VA_VPN0_MASK         ((1ull << (20 - 12 + 1)) - 1)
-							         
-#define RV_SV48_VA_VPN1_SHIFT        (21ull)
-#define RV_SV48_VA_VPN1_MASK         ((1ull << (29 - 21 + 1)) - 1)
-							         
-#define RV_SV48_VA_VPN2_SHIFT        (30ull)
-#define RV_SV48_VA_VPN2_MASK         ((1ull << (38 - 30 + 1)) - 1)
-							         
-#define RV_SV48_VA_VPN3_SHIFT        (39ull)
-#define RV_SV48_VA_VPN3_MASK         ((1ull << (47 - 39 + 1)) - 1)
-
-#define RV_SV48_VA_VPN_BIT_COUNT     (8ull)
-
-//
-// SV48 PA.
-//
-
-#define RV_SV48_PA_PGOFF_SHIFT (0ull)
-#define RV_SV48_PA_PGOFF_MASK  ((1ull << (11 - 0 + 1)) - 1)
-
-#define RV_SV48_PA_PPN0_SHIFT        (12ull)
-#define RV_SV48_PA_PPN0_MASK         ((1ull << (20 - 12 + 1)) - 1)
-
-#define RV_SV48_PA_PPN1_SHIFT        (21ull)
-#define RV_SV48_PA_PPN1_MASK         ((1ull << (29 - 21 + 1)) - 1)
-
-#define RV_SV48_PA_PPN2_SHIFT        (30ull)
-#define RV_SV48_PA_PPN2_MASK         ((1ull << (38 - 30 + 1)) - 1)
-
-#define RV_SV48_PA_PPN3_SHIFT        (39ull)
-#define RV_SV48_PA_PPN3_MASK         ((1ull << (55 - 39 + 1)) - 1)
-
-//
-// SV48 PTE.
-//
-
-#define RV_SV48_PTE_V_SHIFT         (0ull) /* (V) Valid bit. */ 
-#define RV_SV48_PTE_V_MASK          (1ull)
-#define RV_SV48_PTE_V_FLAG          (RV_SV48_PTE_V_MASK << RV_SV48_PTE_V_SHIFT)
-
-#define RV_SV48_PTE_R_SHIFT         (1ull) /* (R) Read access bit. */
-#define RV_SV48_PTE_R_MASK          (1ull)
-#define RV_SV48_PTE_R_FLAG          (RV_SV48_PTE_R_MASK << RV_SV48_PTE_R_SHIFT)
-
-#define RV_SV48_PTE_W_SHIFT         (2ull) /* (W) Write access bit. */
-#define RV_SV48_PTE_W_MASK          (1ull)
-#define RV_SV48_PTE_W_FLAG          (RV_SV48_PTE_W_MASK << RV_SV48_PTE_W_SHIFT)
-
-#define RV_SV48_PTE_X_SHIFT         (3ull) /* (X) Execute access bit. */
-#define RV_SV48_PTE_X_MASK          (1ull)
-#define RV_SV48_PTE_X_FLAG          (RV_SV48_PTE_X_MASK << RV_SV48_PTE_X_SHIFT)
-
-#define RV_SV48_PTE_U_SHIFT         (4ull) /* (U) User-mode access bit. */
-#define RV_SV48_PTE_U_MASK          (1ull)
-#define RV_SV48_PTE_U_FLAG          (RV_SV48_PTE_U_MASK << RV_SV48_PTE_U_SHIFT)
-
-#define RV_SV48_PTE_ACCESS_FLAGS    (RV_SV48_PTE_R_FLAG | RV_SV48_PTE_W_FLAG | RV_SV48_PTE_X_FLAG | RV_SV48_PTE_U_FLAG)
-
-#define RV_SV48_PTE_G_SHIFT         (5ull) /* (G) Global mapping bit. */
-#define RV_SV48_PTE_G_MASK          (1ull)
-#define RV_SV48_PTE_G_FLAG          (RV_SV48_PTE_G_MASK << RV_SV48_PTE_G_SHIFT)
-
-#define RV_SV48_PTE_A_SHIFT         (6ull) /* (A) Accessed bit. */
-#define RV_SV48_PTE_A_MASK          (1ull)
-#define RV_SV48_PTE_A_FLAG          (RV_SV48_PTE_A_MASK << RV_SV48_PTE_A_SHIFT)
-
-#define RV_SV48_PTE_D_SHIFT         (7ull) /* (D) Dirty bit. */
-#define RV_SV48_PTE_D_MASK          (1ull)
-#define RV_SV48_PTE_D_FLAG          (RV_SV48_PTE_D_MASK << RV_SV48_PTE_D_SHIFT)
-
-
-#define RV_SV48_PTE_RSW_SHIFT       (8ull) /* (RSW) Reserved for use by supervisor software. */
-#define RV_SV48_PTE_RSW_MASK        ((1ull << (9 - 8 + 1)) - 1)
-
-#define RV_SV48_PTE_PPN0_SHIFT      (10ull) /* (PPN0) Physical page number part 0. */
-#define RV_SV48_PTE_PPN0_MASK       ((1ull << (18 - 10 + 1)) - 1)
-
-#define RV_SV48_PTE_PPN1_SHIFT      (19ull) /* (PPN1) Physical page number part 1. */
-#define RV_SV48_PTE_PPN1_MASK       ((1ull << (27 - 19 + 1)) - 1)
-
-#define RV_SV48_PTE_PPN2_SHIFT      (28ull) /* (PPN2) Physical page number part 2. */
-#define RV_SV48_PTE_PPN2_MASK       ((1ull << (36 - 28 + 1)) - 1)
-
-#define RV_SV48_PTE_PPN3_SHIFT      (37ull) /* (PPN3) Physical page number part 3. */
-#define RV_SV48_PTE_PPN3_MASK       ((1ull << (53 - 37 + 1)) - 1)
-
-#define RV_SV48_PTE_RESERVED0_SHIFT (54ull) /* Reserved. */
-#define RV_SV48_PTE_RESERVED0_MASK  ((1ull << (60 - 54 + 1)) - 1)
-
-#define RV_SV48_PTE_PBMT_SHIFT      (61ull) /* (PBMT) Attributes for Svbpmt page-based memory types. */
-#define RV_SV48_PTE_PBMT_MASK       ((1ull << (62 - 61 + 1)) - 1)
-							        
-#define RV_SV48_PTE_N_SHIFT         (63ull) /* (N) Svnapot. */
-#define RV_SV48_PTE_N_MASK          (1ul)
-#define RV_SV48_PTE_N_FLAG          (RV_SV48_PTE_N_MASK << RV_SV48_PTE_N_SHIFT)
-
-#define RV_SV47_PTE_FULL_PPN_MASK ( ( RV_SV48_PTE_PPN0_MASK << (0*8)) \
-									| ( RV_SV48_PTE_PPN1_MASK << (1*8) ) \
-									| ( RV_SV48_PTE_PPN2_MASK << (2*8) ) \
-									| ( RV_SV48_PTE_PPN3_MASK << (3*8) ) )
-
-#define RV_SV48_PTE_FULL_PPN(PteValue) \
-	(((PteValue) >> RV_SV48_PTE_PPN0_SHIFT) & RV_SV47_PTE_FULL_PPN_MASK)
-
-//
-// SV48 page table parameters (page size, level count, PTE size).
-//
-#define RV_SV48_PAGESIZE (0x1000u)
-#define RV_SV48_LEVELS   (4u)
-#define RV_SV48_PTESIZE  (8u)
-
 //
 // Instruction decoder helpers.
 //
@@ -705,10 +681,10 @@
 	 | (((Funct7) & RV_INST_R_FUNCT7_MASK) << 10ul))
 
 
-
 //
 // Exception/interrupt functions.
 //
+
 
 //
 // Push exception interrupt.
@@ -771,9 +747,282 @@ RvpSignExtend32(
 	return SxValue;
 }
 
+
 //
 // MMU functions.
 //
+
+
+//
+// Convert a guest physical-page-number to host virtual address.
+// Used to convert the PPNs contained by page-tables to host-accessible addresses.
+// Note: this function is currently only used for guest-to-host mapping.
+//
+_Success_( return )
+static
+RV_BOOLEAN
+RvpMmuPtGuestPpnToHostVa(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT64     GuestPpn,
+	_Out_   VOID**        ppHostAddress
+	)
+{
+	UNREFERENCED_PARAMETER( Vp );
+
+	if( GuestPpn > ( UINT64_MAX / RV_SV48_PAGESIZE ) ) {
+		return RV_FALSE;
+	}
+
+	*ppHostAddress = ( VOID* )( GuestPpn * RV_SV48_PAGESIZE );
+	return RV_TRUE;
+}
+
+//
+// Convert a guest physical address to host virtual address.
+// Note: this function is currently only used for guest-to-host mapping.
+//
+_Success_( return )
+static
+RV_BOOLEAN
+RvpMmuPtGuestPaToHostVa(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT64     GuestPa,
+	_Out_   VOID**        ppHostAddress
+	)
+{
+	RV_UINT64 GuestPpn;
+	VOID*     PageHostAddress;
+
+	//
+	// PPN of the PA.
+	//
+	GuestPpn = ( GuestPa / RV_SV48_PAGESIZE );
+
+	//
+	// Translate PPN of the given PA.
+	//
+	if( RvpMmuPtGuestPpnToHostVa( Vp, GuestPpn, &PageHostAddress ) == RV_FALSE ) {
+		return RV_FALSE;
+	}
+
+	//
+	// Add on the page offset to translated HVA of the PPN.
+	//
+	*ppHostAddress = ( ( RV_UCHAR* )PageHostAddress + ( GuestPa & ( RV_SV48_PAGESIZE - 1 ) ) );
+	return RV_TRUE;
+}
+
+//
+// Perform SV48 page table lookup.
+// Note: this function is currently only used for guest-to-host mapping.
+//
+RV_MMU_TREE_WALK_RESULT
+RvpMmuPtSv48TreeWalk(
+	_Inout_ RV_PROCESSOR* Vp,
+	_In_    RV_UINT64     TableRootPpn,
+	_In_    RV_UINT64     LookupVa,
+	_In_    RV_UINT32     AccessFlags
+	)
+{
+	RV_MMU_TREE_WALK_RESULT Result;
+	RV_UINT64               RootPpn;
+	RV_UINT64               RootPa;
+	RV_UINT64               PageSize;
+	RV_UINT                 i;
+	RV_UINT64               PtePa;
+	VOID*                   PteHva;
+	RV_UINT64               Pte;
+	RV_UINT64               VpnShift;
+	RV_UINT64               Vpn;
+	RV_UINT64               PpnFull;
+	RV_SIZE_T               j;
+	RV_UINT64               Pa;
+	RV_UINT64               PpnShift;
+	RV_UINT64               PpnMask;
+
+	//
+	// Physical page number (PPN) of the root page table.
+	//
+	RootPpn = TableRootPpn;
+
+	//
+	// Page size.
+	//
+	PageSize = RV_SV48_PAGESIZE;
+
+	//
+	// Physical address of the root page table (a).
+	// 1. Let a be satp.ppn * PAGESIZE, and let i = (LEVELS - 1). (For Sv48, PAGESIZE=4096 and
+	// LEVELS=4.) The satp register must be active, i.e., the effective privilege mode must be
+	// S-mode or U-mode.
+	//
+	RootPa = ( RootPpn * PageSize );
+	i      = ( RV_SV48_LEVELS - 1 );
+
+	//
+	// Set up empty initial results
+	//
+	Result = ( RV_MMU_TREE_WALK_RESULT ){ 0 };
+
+	//
+	// Search all levels for a leaf node.
+	//
+	while( RV_TRUE ) {
+		Result.Level = i;
+
+		//
+		// 2. Let pte be the value of the PTE at address a+va.vpn[i]*PTESIZE. (For Sv48, PTESIZE=8.)
+		// If accessing pte violates a PMA or PMP check, raise an access-fault exception corresponding
+		// to the original access type.
+		//
+		VpnShift = ( RV_SV48_VA_VPN0_SHIFT + ( i * RV_SV48_VA_VPN_BIT_COUNT ) );
+		Vpn      = ( ( LookupVa & ( RV_SV48_VA_VPN0_MASK << VpnShift ) ) >> VpnShift );
+		PtePa    = ( RootPa + ( Vpn * RV_SV48_PTESIZE ) );
+
+		//
+		// Translate the PTE's PA to a host virtual address.
+		//
+		if( RvpMmuPtGuestPaToHostVa( Vp, PtePa, &PteHva ) == RV_FALSE ) {
+			Result.IsPresent = 0;
+			break;
+		}
+
+		//
+		// Read the value of the PTE.
+		//
+		Pte = *( volatile RV_UINT64* )PteHva;
+
+		//
+		// 3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, or if any bits or encodings that are reserved for
+		// future standard use are set within pte, stop and raise a page-fault exception corresponding
+		// to the original access type.
+		//
+		if( ( Pte & RV_SV48_PTE_V_FLAG ) == 0
+			|| ( ( Pte & ( RV_SV48_PTE_R_FLAG | RV_SV48_PTE_W_FLAG ) ) == RV_SV48_PTE_W_FLAG )
+			|| ( ( Pte & ( RV_SV48_PTE_R_FLAG | RV_SV48_PTE_W_FLAG | RV_SV48_PTE_X_FLAG ) )
+				 == ( RV_SV48_PTE_W_FLAG | RV_SV48_PTE_X_FLAG ) ) )
+		{
+			Result.IsPresent = 0;
+			break;
+		}
+
+		//
+		// Read PPN field of the PTE.
+		// If this is a leaf node, then this is the PPN of the memory controlled by the PTE.
+		// If this isn't a leaf node, then this is the PPN of another page table level.
+		//
+		PpnFull = RV_SV48_PTE_FULL_PPN( Pte );
+
+		//
+		// 4. Otherwise, the PTE is valid. If pte.r = 1 or pte.x = 1, go to step 5. Otherwise, this PTE is a
+		// pointer to the next level of the page table. Let i = i-1. If i < 0, stop and raise a page-fault
+		// exception corresponding to the original access type. Otherwise, let a = pte.ppn*PAGESIZE
+		// and go to step 2.
+		//
+		if( ( Pte & ( RV_SV48_PTE_R_FLAG | RV_SV48_PTE_X_FLAG ) ) == 0 ) {
+			//
+			// This PTE is a pointer to the next level of the page table.
+			//
+			if( i == 0 ) {
+				//
+				// If this was the last level, and still wasn't a leaf node, this PTE is invalid,
+				// stop and raise a page-fault exception corresponding to the original access type.
+				//
+				Result.IsPresent = 0;
+				break;
+			}
+
+			//
+			// Move down to the next level of the page table.
+			//
+			i -= 1;
+
+			//
+			// let a = pte.ppn*PAGESIZE and go to step 2.
+			//
+			RootPa = ( PpnFull * RV_SV48_PAGESIZE );
+			continue;
+		}
+
+		//
+		// 5. A leaf PTE has been found. Determine if the requested memory access is allowed by the
+		// pte.r, pte.w, pte.x, and pte.u bits, given the current privilege mode and the value of the
+		// SUM and MXR fields of the mstatus register. If not, stop and raise a page-fault exception
+		// corresponding to the original access type.
+		//
+		if( ( Pte & AccessFlags ) != AccessFlags ) {
+			Result.IsAccessFault = 1;
+			break;
+		}
+
+		//
+		// 6. If i > 0 and pte.ppn[i - 1 : 0] != 0, this is a misaligned superpage;
+		// stop and raise a page-fault exception corresponding to the original access type.
+		// 
+		if( i > 0 ) {
+			for( j = 0; j < i; j++ ) {
+				PpnShift = ( RV_SV48_PTE_PPN0_SHIFT + ( 9 * j ) );
+				PpnMask  = ( ( i == 3 ) ? RV_SV48_PTE_PPN3_MASK : RV_SV48_PTE_PPN0_MASK );
+				if( ( Pte & ( PpnMask << PpnShift ) ) != 0 ) {
+					Result.IsPresent = 0;
+					break;
+				}
+			}
+		}
+
+		//
+		// 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0,
+		// either raise a page-fault exception corresponding to the original access type, or:
+		//  * If a store to pte would violate a PMA or PMP check, raise an access-fault exception
+		//   corresponding to the original access type.
+		// 
+		//  * Perform the following steps atomically:
+		//	  - Compare pte to the value of the PTE at address a + va.vpn[i] * PTESIZE.
+		//	  - If the values match, set pte.a to 1 and, if the original memory access is a store, also
+		//	  set pte.d to 1.
+		//	  - If the comparison fails, return to step 2
+		//
+		if( ( Pte & RV_SV48_PTE_A_FLAG )
+			|| ( ( AccessFlags & RV_SV48_PTE_W_FLAG ) && ( Pte & RV_SV48_PTE_D_FLAG ) == 0 ) )
+		{
+			/* TODO. */
+		}
+
+		//
+		// pa.pgoff = va.pgoff.
+		//
+		Pa = ( ( ( LookupVa & RV_SV48_VA_PGOFF_MASK ) >> RV_SV48_VA_PGOFF_SHIFT ) << RV_SV48_PA_PGOFF_SHIFT );
+
+		//
+		// If i > 0, then this is a superpage translation and pa.ppn[i - 1 : 0] = va.vpn[i - 1 : 0].
+		//
+		if( i > 0 ) {
+			for( j = 0; j < i; j++ ) {
+				PpnShift = ( RV_SV48_PA_PPN0_SHIFT + ( 9 * j ) );
+				PpnMask  = ( ( i == 3 ) ? RV_SV48_PA_PPN3_MASK : RV_SV48_PA_PPN0_MASK );
+				VpnShift = ( RV_SV48_VA_VPN0_SHIFT + ( i * RV_SV48_VA_VPN_BIT_COUNT ) );
+				Vpn      = ( ( LookupVa & ( RV_SV48_VA_VPN0_MASK << VpnShift ) ) >> VpnShift );
+				Pa      |= ( Vpn << PpnShift );
+			}
+		}
+
+		//
+		// pa.ppn[LEVELS - 1 : i] = pte.ppn[LEVELS - 1 : i].
+		//
+		for( j = i; j < RV_SV48_LEVELS; j++ ) {
+			PpnShift = ( RV_SV48_PTE_PPN0_SHIFT + ( 9 * j ) );
+			PpnMask  = ( ( i == 3 ) ? RV_SV48_PTE_PPN3_MASK : RV_SV48_PTE_PPN0_MASK );
+			Pa      |= ( ( Pte & ( PpnMask << PpnShift ) ) >> PpnShift ) << ( RV_SV48_PA_PPN0_SHIFT + ( 9 * j ) );
+		}
+
+		Result.IsPresent       = 1;
+		Result.LeafPtePpn      = PpnFull;
+		Result.PhysicalAddress = Pa;
+		break;
+	}
+
+	return Result;
+}
 
 //
 // Attempts to convert a guest address to host address using flat VA span MMU mode.
@@ -781,27 +1030,493 @@ RvpSignExtend32(
 _Success_( return )
 static
 RV_BOOLEAN
-RvpMmuResolveGuestAddressFlat(
+RvpMmuResolveGuestAddressFlatSpan(
 	_Inout_  RV_PROCESSOR* Vp,
 	_In_     RV_UINTR      Address,
-	_In_     RV_SIZE_T     Size,
-	_In_     RV_UINT32     AccessFlags,
-	_Outptr_ VOID**        ppHostData
+	_In_     RV_UINT32     AccessType,
+	_Outptr_ VOID**        ppHostData,
+	_Out_    RV_SIZE_T*    pRemainingSize
 	)
 {
 	RV_UINTR SpanOffset;
 
-	UNREFERENCED_PARAMETER( AccessFlags );
+	UNREFERENCED_PARAMETER( AccessType );
 
-	SpanOffset = ( Address - Vp->VaSpanGuestBase );
-	if( ( Address < Vp->VaSpanGuestBase )
-		|| ( SpanOffset >= Vp->VaSpanSize )
-		|| ( Size > ( Vp->VaSpanSize - SpanOffset ) ) )
+	SpanOffset = ( Address - Vp->MmuVaSpanGuestBase );
+	if( ( Address < Vp->MmuVaSpanGuestBase )
+		|| ( SpanOffset >= Vp->MmuVaSpanSize ) )
 	{
 		return RV_FALSE;
 	}
 
-	*ppHostData = ( ( RV_UCHAR* )Vp->VaSpanHostBase + SpanOffset );
+	*ppHostData     = ( ( RV_UCHAR* )Vp->MmuVaSpanHostBase + SpanOffset );
+	*pRemainingSize = ( Vp->MmuVaSpanSize - SpanOffset );
+	return RV_TRUE;
+}
+
+_Success_( return )
+static
+RV_BOOLEAN
+RvpMmuResolveGuestAddress(
+	_Inout_  RV_PROCESSOR* Vp,
+	_In_     RV_UINTR      Address,
+	_In_     RV_UINT32     AccessType,
+	_In_     RV_BOOLEAN    PushExceptions,
+	_Outptr_ VOID**        ppHostAddress,
+	_Out_    RV_SIZE_T*    pRemainingPageSize
+	)
+{
+	RV_MMU_TREE_WALK_RESULT TreeWalk;
+	RV_UINT32               PteAccessFlags;
+	RV_UINT32               PageFaultException;
+	RV_UINT32               AccessFaultException;
+	RV_UINT64               PageEndAddress;
+
+	//
+	// Try resolving the given address using the flat span.
+	//
+	if( RvpMmuResolveGuestAddressFlatSpan( Vp, Address, AccessType, ppHostAddress, pRemainingPageSize ) ) {
+		return RV_TRUE;
+	}
+
+	//
+	// Currently all accesses should be done by user privilege level, no others are supported.
+	//
+	PteAccessFlags = RV_SV48_PTE_U_FLAG;
+
+	//
+	// Convert access type to PTE flags and exception types.
+	//
+	switch( AccessType ) {
+	case RV_MMU_ACCESS_TYPE_LOAD:
+		PteAccessFlags      |= RV_SV48_PTE_R_FLAG;
+		PageFaultException   = RV_EXCEPTION_LOAD_PAGE_FAULT;
+		AccessFaultException = RV_EXCEPTION_LOAD_ACCESS_FAULT;
+		break;
+	case RV_MMU_ACCESS_TYPE_STORE:
+		PteAccessFlags      |= RV_SV48_PTE_W_FLAG;
+		PageFaultException   = RV_EXCEPTION_STORE_AMO_PAGE_FAULT;
+		AccessFaultException = RV_EXCEPTION_STORE_AMO_ACCESS_FAULT;
+		break;
+	case RV_MMU_ACCESS_TYPE_EXECUTE:
+		PteAccessFlags      |= ( RV_SV48_PTE_R_FLAG | RV_SV48_PTE_X_FLAG );
+		PageFaultException   = RV_EXCEPTION_INSTRUCTION_PAGE_FAULT;
+		AccessFaultException = RV_EXCEPTION_INSTRUCTION_ACCESS_FAULT;
+		break;
+	default:
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
+		return RV_FALSE;
+	}
+
+	//
+	// If guest to host translation through SV48 page-tables is not enabled,
+	// and the flat span doesn't contain the given address, raise a page fault exception and fail.
+	//
+	if( Vp->MmuUseGuestToHostPt == RV_FALSE ) {
+		if( PushExceptions != RV_FALSE ) {
+			RvpExceptionPush( Vp, PageFaultException );
+		}
+		return RV_FALSE;
+	}
+
+	//
+	// Translation using guest-to-host SV48 page-tables is enabled,
+	// then perform a tree walk for the given address.
+	//
+	TreeWalk = RvpMmuPtSv48TreeWalk( Vp, Vp->MmuGuestToHostPtPpn, Address, PteAccessFlags );
+
+	//
+	// If any nodes encountered along the walk conflict with the desired access flags, raise an access fault exception.
+	//
+	if( TreeWalk.IsAccessFault != 0 ) {
+		if( PushExceptions != RV_FALSE ) {
+			RvpExceptionPush( Vp, AccessFaultException );
+		}
+		return RV_FALSE;
+	}
+
+	//
+	// If no leaf PTE is present for this address, raise a page fault exception.
+	//
+	if( TreeWalk.IsPresent == 0 ) {
+		if( PushExceptions != RV_FALSE ) {
+			RvpExceptionPush( Vp, PageFaultException );
+		}
+		return RV_FALSE;
+	}
+
+	//
+	// Convert the resolved guest "physical address" to a host virtual address.
+	//
+	if( RvpMmuPtGuestPaToHostVa( Vp, TreeWalk.PhysicalAddress, ppHostAddress ) == RV_FALSE ) {
+		if( PushExceptions != RV_FALSE ) {
+			RvpExceptionPush( Vp, PageFaultException );
+		}
+		return RV_FALSE;
+	}
+	
+	//
+	// Calculate how much data is left in the page following the resolved address.
+	// TODO: Take into account actual page size of superpages.
+	//
+	PageEndAddress      = ( ( TreeWalk.PhysicalAddress + RV_SV48_PAGESIZE ) & ~( RV_SV48_PAGESIZE - 1 ) );
+	*pRemainingPageSize = ( PageEndAddress - TreeWalk.PhysicalAddress );
+	return RV_TRUE;
+}
+
+_Success_( return )
+static
+RV_BOOLEAN
+RvpMmuGuestStoreCrossPageBoundary(
+	_Inout_                       RV_PROCESSOR* Vp,
+	_In_                          RV_UINTR      Address,
+	_In_reads_bytes_( StoreSize ) const VOID*   StoreData,
+	_In_                          RV_SIZE_T     StoreSize,
+	_In_                          RV_SIZE_T     PageSize,
+	_In_                          RV_BOOLEAN    PushExceptions
+	)
+{
+	RV_MMU_ACCESS_CHUNK Chunks[ 2 ];
+	RV_SIZE_T           ChunkCount;
+	RV_SIZE_T           Offset;
+	RV_SIZE_T           i;
+	RV_UINTR            CurrentAddress;
+	RV_SIZE_T           RemainingSize;
+	VOID*               HostData;
+	RV_SIZE_T           PageAvailableSize;
+	RV_SIZE_T           WriteSize;
+	RV_SIZE_T           j;
+
+	//
+	// Ensure that the store is a supported size.
+	// Note: this is essential, ensures that the chunks array is big enough.
+	//
+	if( StoreSize > PageSize ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
+		return RV_FALSE;
+	}
+
+	ChunkCount = 0;
+
+	//
+	// Attempt to resolve all cross-page chunks for the given span.
+	// This pass is done before the actual write, to ensure that we don't
+	// write any partial amount of data before raising an exception.
+	//
+	for( Offset = 0; Offset < StoreSize; Offset += PageAvailableSize ) {
+		CurrentAddress = ( Address + Offset );
+		RemainingSize  = ( StoreSize - Offset );
+
+		//
+		// Attempt to resolve the current guest address to host data address.
+		//
+		if( RvpMmuResolveGuestAddress( Vp,
+									   CurrentAddress,
+									   RV_MMU_ACCESS_TYPE_STORE,
+									   PushExceptions,
+									   &HostData,
+									   &PageAvailableSize ) == RV_FALSE )
+		{
+			return RV_FALSE;
+		}
+
+		//
+		// Create chunk from data available in this page.
+		//
+		Chunks[ ChunkCount++ ] = ( RV_MMU_ACCESS_CHUNK ){
+			.Data = HostData,
+			.Size = PageAvailableSize
+		};
+	}
+
+	//
+	// Split up writes that cross page boundaries.
+	//
+	for( Offset = 0, i = 0; i < ChunkCount; i++ ) {
+		CurrentAddress = ( Address + Offset );
+		RemainingSize  = ( StoreSize - Offset );
+
+		//
+		// Copy as many bytes as we can to this page.
+		//
+		HostData = Chunks[ i ].Data;
+		PageAvailableSize = Chunks[ i ].Size;
+		WriteSize = RV_MIN( RemainingSize, PageAvailableSize );
+		for( j = 0; j < WriteSize; j++ ) {
+			_Analysis_assume_( ( Offset + j ) < StoreSize );
+			( ( RV_UINT8* )HostData )[ j ] = ( ( const RV_UINT8* )StoreData )[ Offset + j ];
+		}
+
+		//
+		// Move forward by the amount of data that we have copied to this chunk.
+		//
+		Offset += WriteSize;
+	}
+
+	return RV_TRUE;
+}
+
+_Success_( return )
+static
+RV_BOOLEAN
+RvpMmuGuestStore(
+	_Inout_                       RV_PROCESSOR* Vp,
+	_In_                          RV_UINTR      Address,
+	_In_reads_bytes_( StoreSize ) const VOID*   StoreData,
+	_In_                          RV_SIZE_T     StoreSize,
+	_In_                          RV_SIZE_T     PageSize,
+	_In_                          RV_BOOLEAN    PushExceptions
+	)
+{
+	VOID*     HostData;
+	RV_SIZE_T HostDataSize;
+	RV_UINTR  StartPageAddress;
+	RV_SIZE_T StartPageOffset;
+	RV_SIZE_T StartPageRemaining;
+
+	//
+	// PageSize must be a power of 2.
+	// StoreSize must be a power of 2 that doesn't exceed the maximum store size, nor the page size.
+	//
+	if( ( ( PageSize & ( PageSize - 1 ) ) != 0 )
+		|| ( ( StoreSize & ( StoreSize - 1 ) ) != 0 )
+		|| ( StoreSize > sizeof( RV_UINT64 ) ) 
+		|| ( StoreSize > PageSize ) )
+	{
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
+		return RV_FALSE;
+	}
+
+	//
+	// If the store is misaligned and passes over the page boundary,
+	// then a lookup & store must be performed for both pages.
+	// A misaligned load or store instruction may be decomposed
+	// into a set of component memory operations of any granularity.
+	//
+	StartPageAddress = ( Address & ~( PageSize - 1 ) );
+	StartPageOffset = ( Address - StartPageAddress );
+	StartPageRemaining = ( PageSize - StartPageOffset );
+	if( StoreSize > StartPageRemaining ) {
+		return RvpMmuGuestStoreCrossPageBoundary( Vp, Address, StoreData, StoreSize, PageSize, PushExceptions );
+	}
+
+	//
+	// Attempt to resolve the given guest address to host data address.
+	//
+	if( RvpMmuResolveGuestAddress( Vp,
+								   Address,
+								   RV_MMU_ACCESS_TYPE_STORE,
+								   PushExceptions,
+								   &HostData,
+								   &HostDataSize ) == RV_FALSE )
+	{
+		return RV_FALSE;
+	}
+
+	//
+	// Perform aligned store of given size.
+	//
+	switch( StoreSize ) {
+	case RV_MMU_ACCESS_SIZE_BYTE:
+		RV_RELAXED_ATOMIC_STORE8( HostData, *( RV_UINT8* )StoreData );
+		break;
+	case RV_MMU_ACCESS_SIZE_HALF_WORD:
+		RV_RELAXED_ATOMIC_STORE16( HostData, *( RV_UINT16* )StoreData );
+		break;
+	case RV_MMU_ACCESS_SIZE_WORD:
+		RV_RELAXED_ATOMIC_STORE32( HostData, *( RV_UINT32* )StoreData );
+		break;
+	case RV_MMU_ACCESS_SIZE_DOUBLE_WORD:
+		RV_RELAXED_ATOMIC_STORE64( HostData, *( RV_UINT64* )StoreData );
+		break;
+	default:
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
+		return RV_FALSE;
+	}
+
+	return RV_TRUE;
+}
+
+_Success_( return )
+static
+RV_BOOLEAN
+RvpMmuGuestLoadCrossPageBoundary(
+	_Inout_                            RV_PROCESSOR* Vp,
+	_In_                               RV_UINTR      Address,
+	_Out_writes_bytes_all_( LoadSize ) VOID*         Destination,
+	_In_                               RV_SIZE_T     LoadSize,
+	_In_                               RV_SIZE_T     PageSize,
+	_In_                               RV_BOOLEAN    PushExceptions
+	)
+{
+	RV_MMU_ACCESS_CHUNK Chunks[ 2 ];
+	RV_SIZE_T           ChunkCount;
+	RV_SIZE_T           Offset;
+	RV_SIZE_T           i;
+	RV_UINTR            CurrentAddress;
+	RV_SIZE_T           RemainingSize;
+	VOID*               HostData;
+	RV_SIZE_T           PageAvailableSize;
+	RV_SIZE_T           ReadSize;
+	RV_SIZE_T           j;
+
+	//
+	// Ensure that the load is a supported size.
+	// Note: this is essential, ensures that the chunks array is big enough.
+	//
+	if( LoadSize > PageSize ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
+		return RV_FALSE;
+	}
+
+	ChunkCount = 0;
+
+	//
+	// Attempt to resolve all cross-page chunks for the given span.
+	// This pass is done before the actual write, to ensure that we don't
+	// write any partial amount of data before raising an exception.
+	//
+	for( Offset = 0; Offset < LoadSize; Offset += PageAvailableSize ) {
+		CurrentAddress = ( Address + Offset );
+		RemainingSize  = ( LoadSize - Offset );
+
+		//
+		// Attempt to resolve the current guest address to host data address.
+		//
+		if( RvpMmuResolveGuestAddress( Vp,
+									   CurrentAddress,
+									   RV_MMU_ACCESS_TYPE_LOAD,
+									   PushExceptions,
+									   &HostData,
+									   &PageAvailableSize ) == RV_FALSE )
+		{
+			return RV_FALSE;
+		}
+
+		//
+		// Create chunk from data available in this page.
+		//
+		Chunks[ ChunkCount++ ] = ( RV_MMU_ACCESS_CHUNK ){
+			.Data = HostData,
+			.Size = PageAvailableSize
+		};
+	}
+
+	//
+	// The found chunks must contain enough data to serve the entire load. Should always happen.
+	//
+	if( Offset < LoadSize ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
+		return RV_FALSE;
+	}
+
+	//
+	// Split up loads that cross page boundaries.
+	//
+	for( Offset = 0, i = 0; i < ChunkCount; i++ ) {
+		CurrentAddress = ( Address + Offset );
+		RemainingSize  = ( LoadSize - Offset );
+
+		//
+		// Copy as many bytes as we can from this page.
+		//
+		HostData = Chunks[ i ].Data;
+		PageAvailableSize = Chunks[ i ].Size;
+		ReadSize = RV_MIN( RemainingSize, PageAvailableSize );
+		for( j = 0; j < ReadSize; j++ ) {
+			_Analysis_assume_( ( Offset + j ) < LoadSize );
+			( ( RV_UINT8* )Destination )[ Offset + j ] = ( ( const RV_UINT8* )HostData )[ j ];
+		}
+
+		//
+		// Move forward by the amount of data that we have copied to this chunk.
+		//
+		Offset += ReadSize;
+	}
+
+	_Analysis_assume_( Offset >= LoadSize );
+
+	return RV_TRUE;
+}
+
+_Success_( return )
+static
+RV_BOOLEAN
+RvpMmuGuestLoad(
+	_Inout_                            RV_PROCESSOR* Vp,
+	_In_                               RV_UINTR      Address,
+	_Out_writes_bytes_all_( LoadSize ) VOID*         Destination,
+	_In_                               RV_SIZE_T     LoadSize,
+	_In_                               RV_SIZE_T     PageSize,
+	_In_                               RV_BOOLEAN    PushExceptions
+	)
+{
+	VOID*     HostData;
+	RV_SIZE_T HostDataSize;
+	RV_UINTR  StartPageAddress;
+	RV_SIZE_T StartPageOffset;
+	RV_SIZE_T StartPageRemaining;
+
+	//
+	// PageSize must be a power of 2.
+	// LoadSize must be a power of 2 that doesn't exceed the maximum load size, nor the page size.
+	//
+	if( ( ( PageSize & ( PageSize - 1 ) ) != 0 )
+		|| ( ( LoadSize & ( LoadSize - 1 ) ) != 0 )
+		|| ( LoadSize > sizeof( RV_UINT64 ) )
+		|| ( LoadSize > PageSize ) )
+	{
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
+		return RV_FALSE;
+	}
+
+	//
+	// If the load is misaligned and passes over the page boundary,
+	// then a lookup & load must be performed for both pages.
+	// A misaligned load or store instruction may be decomposed
+	// into a set of component memory operations of any granularity.
+	//
+	StartPageAddress = ( Address & ~( PageSize - 1 ) );
+	StartPageOffset = ( Address - StartPageAddress );
+	StartPageRemaining = ( PageSize - StartPageOffset );
+	if( LoadSize > StartPageRemaining ) {
+		return RvpMmuGuestLoadCrossPageBoundary( Vp, Address, Destination, LoadSize, PageSize, PushExceptions );
+	}
+
+	//
+	// Attempt to resolve the given guest address to host data address.
+	//
+	if( RvpMmuResolveGuestAddress( Vp,
+								   Address,
+								   RV_MMU_ACCESS_TYPE_LOAD,
+								   PushExceptions,
+								   &HostData,
+								   &HostDataSize ) == RV_FALSE )
+	{
+		return RV_FALSE;
+	}
+
+	//
+	// Perform aligned load of given size.
+	//
+	switch( LoadSize ) {
+	case RV_MMU_ACCESS_SIZE_BYTE:
+		*( RV_UINT8* )Destination = RV_RELAXED_ATOMIC_LOAD8( HostData );
+		break;
+	case RV_MMU_ACCESS_SIZE_HALF_WORD:
+		*( RV_UINT16* )Destination = RV_RELAXED_ATOMIC_LOAD16( HostData );
+		break;
+	case RV_MMU_ACCESS_SIZE_WORD:
+		*( RV_UINT32* )Destination = RV_RELAXED_ATOMIC_LOAD32( HostData );
+		break;
+	case RV_MMU_ACCESS_SIZE_DOUBLE_WORD:
+		*( RV_UINT64* )Destination = RV_RELAXED_ATOMIC_LOAD32( HostData );
+		break;
+	default:
+		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
+		return RV_FALSE;
+	}
+
 	return RV_TRUE;
 }
 
@@ -815,25 +1530,23 @@ RV_BOOLEAN
 RvpFetchInstructionWord(
 	_Inout_ RV_PROCESSOR* Vp,
 	_In_    RV_UINTR      Address,
+	_In_    RV_BOOLEAN    PushExceptions,
 	_Out_   RV_UINT32*    pWord
 	)
 {
-	VOID* HostAddress;
+	RV_UINT32 RawWord;
 
 	//
-	// Currently only allow a flat space of contiguous memory to be allocated to the guest.
+	// Attempt to fetch instruction data.
 	//
-	if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( *pWord ),
-									   ( RV_PAGE_FLAG_R | RV_PAGE_FLAG_X ),
-									   &HostAddress ) == RV_FALSE )
-	{
+	if( RvpMmuGuestLoad( Vp, Address, &RawWord, sizeof( RawWord ), RV_MMU_MIN_PAGESIZE, PushExceptions ) == RV_FALSE ) {
 		return RV_FALSE;
 	}
 
 	//
 	// Convert from little-endian to host endianness and return fetched word.
 	//
-	*pWord = RV_LITTLE_ENDIAN_32( *( RV_UINT32* )HostAddress );
+	*pWord = RV_LITTLE_ENDIAN_32( RawWord );
 	return RV_TRUE;
 }
 
@@ -850,19 +1563,19 @@ RvpInstructionExecuteOpcodeLoad(
 	_In_    RV_UINT32     Instruction
 	)
 {
-	RV_UINT32 Funct3;
-	RV_UINT32 Rd;
-	RV_UINT32 Rs1;
-	RV_UINT32 UOffset32;
-	RV_UINTR  Address;
-	VOID*     HostData;
+	RV_UINT32    Funct3;
+	RV_UINT32    Rd;
+	RV_UINT32    Rs1;
+	RV_UINT32    UOffset32;
+	RV_UINTR     Address;
+	RV_MEM_VALUE Value;
 
 	//
 	// Decode I-type instruction fields.
 	//
-	Funct3 = ( ( Instruction >> RV_INST_I_FUNCT3_SHIFT ) & RV_INST_I_FUNCT3_MASK );
-	Rd     = ( ( Instruction >> RV_INST_I_RD_SHIFT ) & RV_INST_I_RD_MASK );
-	Rs1    = ( ( Instruction >> RV_INST_I_RS1_SHIFT ) & RV_INST_I_RS1_MASK );
+	Funct3    = ( ( Instruction >> RV_INST_I_FUNCT3_SHIFT ) & RV_INST_I_FUNCT3_MASK );
+	Rd        = ( ( Instruction >> RV_INST_I_RD_SHIFT ) & RV_INST_I_RD_MASK );
+	Rs1       = ( ( Instruction >> RV_INST_I_RS1_SHIFT ) & RV_INST_I_RS1_MASK );
 	UOffset32 = ( ( Instruction >> RV_INST_I_IMM_11_0_SHIFT ) & RV_INST_I_IMM_11_0_MASK );
 	UOffset32 = RvpSignExtend32( Vp, UOffset32, 11 );
 
@@ -900,72 +1613,65 @@ RvpInstructionExecuteOpcodeLoad(
 		//
 		// The LD instruction loads a 64-bit value from memory into register rd for RV64I.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT64 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU64, sizeof( Value.AsU64 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		Vp->Xr[ Rd ] = *( RV_UINT64* )HostData;
+		Vp->Xr[ Rd ] = Value.AsU64;
 		break;
 	case RV_LOAD_FUNCT3_LWU:
 		//
 		// LWU zero-extends the 32-bit value from memory for RV64I.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT32 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU32, sizeof( Value.AsU32 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		Vp->Xr[ Rd ] = *( RV_UINT32* )HostData;
+		Vp->Xr[ Rd ] = ( RV_UINTR )Value.AsU32;
 		break;
 #endif
 	case RV_LOAD_FUNCT3_LW:
 		//
 		// LW loads a 32-bit value from memory, then sign-extends to XLEN-bits before storing it in rd.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT32 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU32, sizeof( Value.AsU32 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )( *( RV_UINT32* )HostData );
+		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )Value.AsU32;
 		break;
 	case RV_LOAD_FUNCT3_LH:
 		//
 		// LH loads a 16-bit value from memory, then sign-extends to XLEN-bits before storing in rd.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT16 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU16, sizeof( Value.AsU16 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )RvpSignExtend32( Vp, *( RV_UINT16* )HostData, 15 );
+		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT16 )Value.AsU16;
 		break;
 	case RV_LOAD_FUNCT3_LHU:
 		//
 		// LHU loads a 16-bit value from memory but then zero extends to XLEN-bits before storing in rd.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT16 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU16, sizeof( Value.AsU16 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		Vp->Xr[ Rd ] = *( RV_UINT16* )HostData;
+		Vp->Xr[ Rd ] = Value.AsU16;
 		break;
 	case RV_LOAD_FUNCT3_LB:
 		//
 		// LB loads an 8-bit value from memory, then sign-extends to XLEN-bits before storing in rd.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT8 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU8, sizeof( Value.AsU8 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )RvpSignExtend32( Vp, *( RV_UINT8* )HostData, 7 );
+		Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT8 )Value.AsU8;
 		break;
 	case RV_LOAD_FUNCT3_LBU:
 		//
 		// LBU loads an 8-bit value from memory but then zero extends to XLEN-bits before storing in rd.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT8 ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU8, sizeof( Value.AsU8 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		Vp->Xr[ Rd ] = *( RV_UINT8* )HostData;
+		Vp->Xr[ Rd ] = Value.AsU8;
 		break;
 	default:
 		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
@@ -982,12 +1688,12 @@ RvpInstructionExecuteOpcodeStore(
 	_In_    RV_UINT32     Instruction
 	)
 {
-	RV_UINT32 Funct3;
-	RV_UINT32 Offset;
-	RV_UINT32 Rs1;
-	RV_UINT32 Rs2;
-	RV_UINTR  Address;
-	VOID*     HostData;
+	RV_UINT32    Funct3;
+	RV_UINT32    Offset;
+	RV_UINT32    Rs1;
+	RV_UINT32    Rs2;
+	RV_UINTR     Address;
+	RV_MEM_VALUE Value;
 
 	//
 	// Decode S-type instruction fields.
@@ -1026,33 +1732,29 @@ RvpInstructionExecuteOpcodeStore(
 	//
 	switch( Funct3 ) {
 	case RV_STORE_FUNCT3_SB:
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT8 ), RV_PAGE_FLAG_W, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		Value = ( RV_MEM_VALUE ){ .AsU8 = ( RV_UINT8 )Vp->Xr[ Rs2 ] };
+		if( RvpMmuGuestStore( Vp, Address, &Value.AsU8, sizeof( Value.AsU8 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		*( RV_UINT8* )HostData = ( RV_UINT8 )Vp->Xr[ Rs2 ];
 		break;
 	case RV_STORE_FUNCT3_SH:
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT16 ), RV_PAGE_FLAG_W, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		Value = ( RV_MEM_VALUE ){ .AsU16 = ( RV_UINT16 )Vp->Xr[ Rs2 ] };
+		if( RvpMmuGuestStore( Vp, Address, &Value.AsU16, sizeof( Value.AsU16 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		*( RV_UINT16* )HostData = ( RV_UINT16 )Vp->Xr[ Rs2 ];
 		break;
 	case RV_STORE_FUNCT3_SW:
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT32 ), RV_PAGE_FLAG_W, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		Value = ( RV_MEM_VALUE ){ .AsU32 = ( RV_UINT32 )Vp->Xr[ Rs2 ] };
+		if( RvpMmuGuestStore( Vp, Address, &Value.AsU32, sizeof( Value.AsU32 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		*( RV_UINT32* )HostData = ( RV_UINT32 )Vp->Xr[ Rs2 ];
 		break;
 #if defined(RV_OPT_RV64I)
 	case RV_STORE_FUNCT3_SD:
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_UINT64 ), RV_PAGE_FLAG_W, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		Value = ( RV_MEM_VALUE ){ .AsU64 = ( RV_UINT64 )Vp->Xr[ Rs2 ] };
+		if( RvpMmuGuestStore( Vp, Address, &Value.AsU64, sizeof( Value.AsU64 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		*( RV_UINT64* )HostData = ( RV_UINT64 )Vp->Xr[ Rs2 ];
 		break;
 #endif
 	default:
@@ -1077,7 +1779,7 @@ RvpInstructionExecuteOpcodeMiscMem(
 	switch( Funct3 ) {
 	case RV_MISC_MEM_FUNCT3_FENCE:
 		//
-		// Unimplemented.
+		// Unimplemented, TODO!
 		//
 		break;
 	default:
@@ -1634,16 +2336,16 @@ RvpInstructionExecuteOpcodeOp(
 
 	//
 	// Base opcode RV_OPCODE_OP funct3 values (R-type).
-	// 0000000 rs2   rs1 000 rd 0110011 ADD
-	// 0100000 rs2   rs1 000 rd 0110011 SUB
-	// 0000000 rs2   rs1 001 rd 0110011 SLL
-	// 0000000 rs2   rs1 010 rd 0110011 SLT
-	// 0000000 rs2   rs1 011 rd 0110011 SLTU
-	// 0000000 rs2   rs1 100 rd 0110011 XOR
-	// 0000000 rs2   rs1 101 rd 0110011 SRL
-	// 0100000 rs2   rs1 101 rd 0110011 SRA
-	// 0000000 rs2   rs1 110 rd 0110011 OR
-	// 0000000 rs2   rs1 111 rd 0110011 AND
+	// 0000000 rs2 rs1 000 rd 0110011 ADD
+	// 0100000 rs2 rs1 000 rd 0110011 SUB
+	// 0000000 rs2 rs1 001 rd 0110011 SLL
+	// 0000000 rs2 rs1 010 rd 0110011 SLT
+	// 0000000 rs2 rs1 011 rd 0110011 SLTU
+	// 0000000 rs2 rs1 100 rd 0110011 XOR
+	// 0000000 rs2 rs1 101 rd 0110011 SRL
+	// 0100000 rs2 rs1 101 rd 0110011 SRA
+	// 0000000 rs2 rs1 110 rd 0110011 OR
+	// 0000000 rs2 rs1 111 rd 0110011 AND
 	//
 	switch( Class ) {
 	case RV_INST_CLASSIFY_F3F7( RV_OPCODE_OP, RV_OP_FUNCT3_ADD_SUB, RV_OP_FUNCT7_ADD ):
@@ -2112,7 +2814,6 @@ RvpInstructionExecuteOpcodeSystem(
 			//
 			RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION );
 			return;
-
 		}
 			
 		//
@@ -2562,7 +3263,9 @@ RvpInstructionExecuteOpcodeAmo(
 }
 
 //
-// RV32F implementation, WIP.
+// RV32F implementation.
+// TODO: Convert some of these functions to use SSE if supported,
+// instead of raw access to binary encoded IEEE754 floats.
 //
 
 #if (defined(RV_OPT_RV32F) || defined(RV_OPT_RV32D))
@@ -3701,12 +4404,12 @@ RvpInstructionExecuteOpcodeStoreFp(
 	_In_    RV_UINT32     Instruction
 	)
 {
-	RV_UINT32 Width;
-	RV_UINT32 UOffset32;
-	RV_UINT32 BaseXr;
-	RV_UINT32 SrcFr;
-	RV_UINTR  Address;
-	VOID*     HostData;
+	RV_UINT32    Width;
+	RV_UINT32    UOffset32;
+	RV_UINT32    BaseXr;
+	RV_UINT32    SrcFr;
+	RV_UINTR     Address;
+	RV_MEM_VALUE Value;
 
 	//
 	// Decode S-type instruction fields.
@@ -3735,29 +4438,26 @@ RvpInstructionExecuteOpcodeStoreFp(
 
 	//
 	// Store Floating-point value of given width to memory.
-	// TODO: Change this to use generic WriteMemory, and handle writes that cross page boundaries.
 	//
 	switch( Width ) {
 	case RV_STORE_FUNCT3_SW:
 		//
 		// FSW stores a single-precision value from Floating-point register rs2 to memory.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_FLOAT ), RV_PAGE_FLAG_W, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		Value = ( RV_MEM_VALUE ){ .AsFloat = ( RV_FLOAT )Vp->Fr[ SrcFr ] };
+		if( RvpMmuGuestStore( Vp, Address, &Value.AsU32, sizeof( Value.AsU32 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		*( RV_FLOAT* )HostData = ( RV_FLOAT )Vp->Fr[ SrcFr ];
 		break;
 #if defined(RV_OPT_RV32D)
 	case RV_STORE_FUNCT3_SD:
 		//
 		// FSD stores a double-precision value from the Floating-point registers to memory.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_DOUBLE ), RV_PAGE_FLAG_W, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		Value = ( RV_MEM_VALUE ){ .AsDouble = ( RV_DOUBLE )Vp->Fr[ SrcFr ] };
+		if( RvpMmuGuestStore( Vp, Address, &Value.AsU64, sizeof( Value.AsU64 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) == RV_FALSE ) {
 			return;
 		}
-		*( RV_DOUBLE* )HostData = ( RV_DOUBLE )Vp->Fr[ SrcFr ];
 		break;
 #endif
 	default:
@@ -3775,12 +4475,12 @@ RvpInstructionExecuteOpcodeLoadFp(
 	_In_    RV_UINT32     Instruction
 	)
 {
-	RV_UINT32 Width;
-	RV_UINT32 RdFr;
-	RV_UINT32 BaseXr;
-	RV_UINT32 UOffset32;
-	RV_UINTR  Address;
-	VOID*     HostData;
+	RV_UINT32    Width;
+	RV_UINT32    RdFr;
+	RV_UINT32    BaseXr;
+	RV_UINT32    UOffset32;
+	RV_UINTR     Address;
+	RV_MEM_VALUE Value;
 
 	//
 	// Decode I-type instruction fields.
@@ -3806,29 +4506,28 @@ RvpInstructionExecuteOpcodeLoadFp(
 
 	//
 	// Load Floating-point value of given width from memory.
-	// TODO: Change this to use generic ReadMemory, and handle writes that cross page boundaries.
 	//
 	switch( Width ) {
 	case RV_STORE_FUNCT3_SW:
 		//
 		// The FLW instruction loads a single-precision Floating-point value from memory into Floating-point register rd.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_FLOAT ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		Value = ( RV_MEM_VALUE ){ 0 };
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU32, sizeof( Value.AsU32 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) ) {
 			return;
 		}
-		Vp->Fr[ RdFr ] = ( RV_FLOATR )( *( RV_FLOAT* )HostData );
+		Vp->Fr[ RdFr ] = ( RV_FLOATR )Value.AsFloat;
 		break;
 #if defined(RV_OPT_RV32D)
 	case RV_STORE_FUNCT3_SD:
 		//
 		// The FLD instruction loads a double-precision Floating-point value from memory into Floating-point register rd.
 		//
-		if( RvpMmuResolveGuestAddressFlat( Vp, Address, sizeof( RV_DOUBLE ), RV_PAGE_FLAG_R, &HostData ) == RV_FALSE ) {
-			RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		Value = ( RV_MEM_VALUE ){ 0 };
+		if( RvpMmuGuestLoad( Vp, Address, &Value.AsU64, sizeof( Value.AsU64 ), RV_MMU_MIN_PAGESIZE, RV_TRUE ) ) {
 			return;
 		}
-		Vp->Fr[ RdFr ] = ( RV_FLOATR )( *( RV_DOUBLE* )HostData );
+		Vp->Fr[ RdFr ] = ( RV_FLOATR )Value.AsDouble;
 		break;
 #endif
 	default:
@@ -3962,8 +4661,7 @@ RvpTickExecute(
 	//
 	// Fetch instruction word from PC.
 	//
-	if( RvpFetchInstructionWord( Vp, Vp->Pc, &Instruction ) == RV_FALSE ) {
-		RvpExceptionPush( Vp, RV_EXCEPTION_INSTRUCTION_PAGE_FAULT );
+	if( RvpFetchInstructionWord( Vp, Vp->Pc, RV_TRUE, &Instruction ) == RV_FALSE ) {
 		return;
 	}
 

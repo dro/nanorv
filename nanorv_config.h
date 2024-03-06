@@ -20,7 +20,7 @@
 #define RV_OPT_RV64I
 
 //
-// Enable RV32F single precision floating-point extension (and RV64F if 
+// Enable RV32F single precision floating-point extension (and RV64F if enabled).
 //
 // #define RV_OPT_RV32F
 
@@ -29,6 +29,16 @@
 // This should be true for almost any modern processor.
 //
 #define RV_OPT_BUILD_IEEE_754
+
+//
+// Host architecture has atomic aligned load/stores.
+//
+#define RV_OPT_HOST_ATOMIC_ALIGNED_ACCESS
+
+//
+// Allow the use of C11 stdatomic.h.
+// 
+// #define RV_OPT_BUILD_STD_ATOMIC
 
 //
 // Allow the use of MSVC-specific extensions and intrinsics.
@@ -53,7 +63,7 @@
 //
 // Allow the use of SSE intrinsics (used by FP code).
 //
-// #define RV_OPT_BUILD_SSE
+//#define RV_OPT_BUILD_SSE
 
 //
 // Allow the use of CRT/LibC functions (used by FP code).
