@@ -62,12 +62,12 @@ RvTest(
   //
   Vp = ( RV_PROCESSOR ) {
     /* Flat span of host memory to pass to the guest. */
-    .VaSpanHostBase  = VpMemory,
-    .VaSpanSize      = sizeof( VpMemory ),
+    .MmuVaSpanHostBase  = VpMemory,
+    .MmuVaSpanSize      = sizeof( VpMemory ),
     /* Begin the flat span of memory at guest effective address 0. */
-    .VaSpanGuestBase = 0, 
+    .MmuVaSpanGuestBase = 0, 
     /* Begin executing at guest effective address 0. */
-    .Pc              = 0
+    .Pc                 = 0
   };
   
   //
