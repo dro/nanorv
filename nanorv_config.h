@@ -79,3 +79,8 @@
 // Build for big-endian host environment.
 //
 // #define RV_OPT_HOST_BIG_ENDIAN
+
+//
+// Enable MMU Guest-To-Host paging support using an SV48 radix tree.
+//
+// #define RV_OPT_MMU_GTH_PAGING
