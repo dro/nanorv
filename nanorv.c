@@ -1082,11 +1082,13 @@ RvpMmuResolveGuestAddress(
 	_Out_    RV_SIZE_T*    pRemainingPageSize
 	)
 {
-	RV_MMU_TREE_WALK_RESULT TreeWalk;
 	RV_UINT32               PteAccessFlags;
 	RV_UINT32               PageFaultException;
 	RV_UINT32               AccessFaultException;
+#if defined(RV_OPT_MMU_GTH_PAGING)
+	RV_MMU_TREE_WALK_RESULT TreeWalk;
 	RV_UINT64               PageEndAddress;
+#endif
 
 	//
 	// Try resolving the given address using the flat span.
