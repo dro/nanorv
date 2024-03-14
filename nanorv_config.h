@@ -22,7 +22,7 @@
 //
 // Enable RV32F single precision floating-point extension (and RV64F if enabled).
 //
-// #define RV_OPT_RV32F
+#define RV_OPT_RV32F
 
 //
 // Indicates that the host uses an IEEE-754 compliant FPU (only relevant for RV32F).

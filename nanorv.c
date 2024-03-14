@@ -753,6 +753,7 @@ RvpSignExtend32(
 //
 
 
+#if defined(RV_OPT_MMU_GTH_PAGING)
 //
 // Convert a guest physical-page-number to host virtual address.
 // Used to convert the PPNs contained by page-tables to host-accessible addresses.
@@ -1023,6 +1024,7 @@ RvpMmuPtSv48TreeWalk(
 
 	return Result;
 }
+#endif
 
 //
 // Attempts to convert a guest address to host address using flat VA span MMU mode.
@@ -1038,11 +1040,25 @@ RvpMmuResolveGuestAddressFlatSpan(
 	_Out_    RV_SIZE_T*    pRemainingSize
 	)
 {
-	RV_UINTR SpanOffset;
+	RV_UINTR  AddressDeltaR;
+	RV_SIZE_T SpanOffset;
 
 	UNREFERENCED_PARAMETER( AccessType );
 
-	SpanOffset = ( Address - Vp->MmuVaSpanGuestBase );
+	//
+	// Ensure that the span offset doesn't exceed the maximum host address space,
+	// for example: when running an RV64 guest on a 32-bit host.
+	//
+	AddressDeltaR = ( Address - Vp->MmuVaSpanGuestBase );
+	if( AddressDeltaR > SIZE_MAX ) {
+		return RV_FALSE;
+	}
+
+	SpanOffset = ( RV_SIZE_T )AddressDeltaR;
+
+	//
+	// Ensure that the given span offset is within the given VA span's guest range.
+	//
 	if( ( Address < Vp->MmuVaSpanGuestBase )
 		|| ( SpanOffset >= Vp->MmuVaSpanSize ) )
 	{
@@ -1112,6 +1128,12 @@ RvpMmuResolveGuestAddress(
 	// If guest to host translation through SV48 page-tables is not enabled,
 	// and the flat span doesn't contain the given address, raise a page fault exception and fail.
 	//
+#if !defined(RV_OPT_MMU_GTH_PAGING)
+	if( PushExceptions != RV_FALSE ) {
+		RvpExceptionPush( Vp, PageFaultException );
+	}
+	return RV_FALSE;
+#else
 	if( Vp->MmuUseGuestToHostPt == RV_FALSE ) {
 		if( PushExceptions != RV_FALSE ) {
 			RvpExceptionPush( Vp, PageFaultException );
@@ -1160,8 +1182,9 @@ RvpMmuResolveGuestAddress(
 	// TODO: Take into account actual page size of superpages.
 	//
 	PageEndAddress      = ( ( TreeWalk.PhysicalAddress + RV_SV48_PAGESIZE ) & ~( RV_SV48_PAGESIZE - 1 ) );
-	*pRemainingPageSize = ( PageEndAddress - TreeWalk.PhysicalAddress );
+	*pRemainingPageSize = ( RV_SIZE_T )RV_MIN( ( PageEndAddress - TreeWalk.PhysicalAddress ), ( RV_UINT64 )SIZE_MAX );
 	return RV_TRUE;
+#endif
 }
 
 _Success_( return )

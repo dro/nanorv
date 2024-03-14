@@ -149,7 +149,6 @@ typedef union _RV_FLOAT64_RAW {
 //
 #define RV_FORCEINLINE __forceinline
 
-
 //
 // Shared PTE flags (temporary).
 //
@@ -164,7 +163,6 @@ typedef union _RV_FLOAT64_RAW {
 //
 // SV48 definitions.
 //
-
 
 //
 // SV48 VA.
@@ -423,8 +421,10 @@ typedef struct _RV_PROCESSOR {
 	//
 	// Memory accessible to the guest processor through SV48 guest-to-host translation tables.
 	//
+#if defined(RV_OPT_MMU_GTH_PAGING)
 	RV_UINT64  MmuGuestToHostPtPpn;
 	RV_BOOLEAN MmuUseGuestToHostPt;
+#endif
 
 	//
 	// Timer states.
@@ -446,7 +446,7 @@ typedef struct _RV_PROCESSOR {
 // Perform SV48 page table lookup.
 // Note: this function is currently only used for guest-to-host mapping.
 //
-
+#if defined(RV_OPT_MMU_GTH_PAGING)
 RV_MMU_TREE_WALK_RESULT
 RvpMmuPtSv48TreeWalk(
 	_Inout_ RV_PROCESSOR* Vp,
@@ -454,11 +454,11 @@ RvpMmuPtSv48TreeWalk(
 	_In_    RV_UINT64     LookupVa,
 	_In_    RV_UINT32     AccessFlags
 	);
+#endif
 
 //
-// General processor tick execution functions (update values/timers, fetch and execute a instruction, etc).
+// General processor tick execution function (update values/timers, fetch and execute a instruction, etc).
 //
-
 VOID
 RvpTickExecute(
 	_Inout_ RV_PROCESSOR* Vp
