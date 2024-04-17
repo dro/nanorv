@@ -1843,8 +1843,9 @@ RvpInstructionExecuteOpcodeLui(
 	// LUI (load upper immediate) is used to build 32-bit constants and uses the U-type format. LUI
 	// places the U-immediate value in the top 20 bits of the destination register rd, filling in the lowest
 	// 12 bits with zeros.
+	// In RV64I, The 32-bit result is sign-extended to 64 bits.
 	//
-	Vp->Xr[ Rd ] = RvpSignExtend32( Vp, Imm_31_12, 31 );
+	Vp->Xr[ Rd ] = ( RV_INTR )( RV_INT32 )Imm_31_12;
 	Vp->Pc += 4;
 }
 
