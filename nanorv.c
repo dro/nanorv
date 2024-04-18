@@ -1746,8 +1746,6 @@ RvpInstructionExecuteOpcodeStore(
 
 	//
 	// Lookup the host data address for the given guest effective address, and perform the store.
-	// TODO: Update this to use generic WriteMemory function to handle cross
-	// page-boundary accesses once MMU is fleshed out!
 	// 
 	// Base opcode RV_OPCODE_STORE funct3 values (S-type).
 	// imm[11:5] rs2 rs1 000 imm[4:0] 0100011 SB
@@ -1877,8 +1875,9 @@ RvpInstructionExecuteOpcodeAuipc(
 	// AUIPC (add upper immediate to pc) is used to build pc-relative addresses and uses the U-type
 	// format. AUIPC forms a 32-bit offset from the 20-bit U-immediate, filling in the lowest 12 bits with
 	// zeros, adds this offset to the address of the AUIPC instruction, then places the result in register rd.
+	// In RV64I, the 32-bit offset formed by the U-immediate is sign-extended to 64 bits before adding to the PC.
 	//
-	Vp->Xr[ Rd ] = ( Vp->Pc + ( RV_INTR )( RV_INT32 )RvpSignExtend32( Vp, Imm_31_12, 31 ) );
+	Vp->Xr[ Rd ] = ( Vp->Pc + ( RV_INTR )( RV_INT32 )Imm_31_12 );
 	Vp->Pc += 4;
 }
 
