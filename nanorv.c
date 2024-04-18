@@ -1048,18 +1048,12 @@ RvpMmuResolveGuestAddressFlatSpan(
 	//
 	// Ensure that the span offset doesn't exceed the maximum host address space,
 	// for example: when running an RV64 guest on a 32-bit host.
-	//
-	AddressDeltaR = ( Address - Vp->MmuVaSpanGuestBase );
-	if( AddressDeltaR > SIZE_MAX ) {
-		return RV_FALSE;
-	}
-
-	SpanOffset = ( RV_SIZE_T )AddressDeltaR;
-
-	//
 	// Ensure that the given span offset is within the given VA span's guest range.
 	//
-	if( ( Address < Vp->MmuVaSpanGuestBase )
+	AddressDeltaR = ( Address - Vp->MmuVaSpanGuestBase );
+	SpanOffset = ( RV_SIZE_T )AddressDeltaR;
+	if( ( AddressDeltaR > SIZE_MAX )
+		|| ( Address < Vp->MmuVaSpanGuestBase )
 		|| ( SpanOffset >= Vp->MmuVaSpanSize ) )
 	{
 		return RV_FALSE;
