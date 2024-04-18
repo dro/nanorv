@@ -1333,6 +1333,14 @@ RvpMmuGuestStore(
 	}
 
 	//
+	// Ensure that the access cannot pass out of mapped host data bounds (case for unaligned flat span sizes).
+	//
+	if( StoreSize > HostDataSize ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_STORE_AMO_PAGE_FAULT );
+		return RV_FALSE;
+	}
+
+	//
 	// Perform aligned store of given size.
 	//
 	switch( StoreSize ) {
@@ -1512,6 +1520,16 @@ RvpMmuGuestLoad(
 								   &HostData,
 								   &HostDataSize ) == RV_FALSE )
 	{
+		return RV_FALSE;
+	}
+
+	//
+	// Ensure that the access doesn't pass out of bounds of the remaining host data,
+	// shouldn't occur for when using GTH paging, but is possible with a flat span mapping
+	// that isn't page aligned.
+	//
+	if( LoadSize > HostDataSize ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_LOAD_PAGE_FAULT );
 		return RV_FALSE;
 	}
 
