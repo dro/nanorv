@@ -1559,19 +1559,34 @@ RvpFetchInstructionWord(
 	_Out_   RV_UINT32*    pWord
 	)
 {
+	VOID*     HostData;
+	RV_SIZE_T HostDataSize;
 	RV_UINT32 RawWord;
 
 	//
-	// Attempt to fetch instruction data.
+	// Attempt to resolve the given guest address to host data address.
 	//
-	if( RvpMmuGuestLoad( Vp, Address, &RawWord, sizeof( RawWord ), RV_MMU_MIN_PAGESIZE, PushExceptions ) == RV_FALSE ) {
+	if( RvpMmuResolveGuestAddress( Vp,
+								   Address,
+								   RV_MMU_ACCESS_TYPE_EXECUTE,
+								   PushExceptions,
+								   &HostData,
+								   &HostDataSize ) == RV_FALSE ) {
+		return RV_FALSE;
+	}
+
+	//
+	// Ensure that the access cannot pass out of mapped host data bounds (case for unaligned flat span sizes).
+	//
+	if( sizeof( RV_UINT32 ) > HostDataSize ) {
+		RvpExceptionPush( Vp, RV_EXCEPTION_INSTRUCTION_PAGE_FAULT );
 		return RV_FALSE;
 	}
 
 	//
 	// Convert from little-endian to host endianness and return fetched word.
 	//
-	*pWord = RV_LITTLE_ENDIAN_32( RawWord );
+	*pWord = RV_LITTLE_ENDIAN_32( RV_RELAXED_ATOMIC_LOAD32( HostData ) );
 	return RV_TRUE;
 }
 
