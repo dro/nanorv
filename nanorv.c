@@ -1535,7 +1535,7 @@ RvpMmuGuestLoad(
 		*( RV_UINT32* )Destination = RV_RELAXED_ATOMIC_LOAD32( HostData );
 		break;
 	case RV_MMU_ACCESS_SIZE_DOUBLE_WORD:
-		*( RV_UINT64* )Destination = RV_RELAXED_ATOMIC_LOAD32( HostData );
+		*( RV_UINT64* )Destination = RV_RELAXED_ATOMIC_LOAD64( HostData );
 		break;
 	default:
 		RvpExceptionPush( Vp, RV_EXCEPTION_ILLEGAL_INSTRUCTION ); /* Internal error. */
